@@ -6,7 +6,7 @@ from src.shopify_service import ShopifyService
 from src.shopify_analytics import ShopifyAnalytics
 from src.conversational_insights import ConversationalInsights
 from src.shopify_report_generator import ShopifyReportGenerator
-from src.email_service import EmailService
+from src.email_service import ConversationalEmailService
 from src.feedback_database import FeedbackDatabase
 from src.reply_processor import ReplyProcessor
 from src.scheduler import ReportScheduler
@@ -20,7 +20,7 @@ shopify_service = ShopifyService()
 analytics = ShopifyAnalytics(shopify_service)
 insights = ConversationalInsights()
 report_generator = ShopifyReportGenerator()
-email_service = EmailService()
+email_service = ConversationalEmailService()
 feedback_db = FeedbackDatabase()
 reply_processor = ReplyProcessor(feedback_db)
 

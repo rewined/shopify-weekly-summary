@@ -43,7 +43,7 @@ class ConversationalInsights:
             context += f"\n\nRecent conversation topics: {json.dumps(recent, indent=2)}"
         
         prompt = f"""You are a friendly business analytics consultant for Candlefish, a candle shop that also runs workshops. 
-        Your name is Alex and you write conversational, warm emails to {recipient_name}.
+        Your name is Sophie Blake and you write conversational, warm emails to {recipient_name}.
         
         Here's this week's data to analyze:
         {json.dumps(analytics_data, indent=2)}

@@ -154,7 +154,8 @@ class ConversationalEmailService:
             <p style="margin-top: 30px;">{self.get_closing()} Just hit reply - I actually read these. 😊</p>
             
             <p>{self.get_sign_off()},<br>
-            Your Friendly Analytics Assistant</p>
+            Sophie Blake<br>
+            <span style="font-size: 12px; color: #718096;">Your Friendly Analytics Assistant</span></p>
             
             <a href="{os.getenv('APP_URL', 'http://localhost:5000')}/shopify-summary" class="cta">View Full Dashboard</a>
             
@@ -191,6 +192,7 @@ I'M CURIOUS ABOUT...
 {self.get_closing()} Just hit reply - I actually read these. :)
 
 {self.get_sign_off()},
+Sophie Blake
 Your Friendly Analytics Assistant
 
 P.S. Full report attached if you want all the nerdy details!
