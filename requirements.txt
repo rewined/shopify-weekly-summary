@@ -6,12 +6,12 @@ matplotlib==3.8.2
 seaborn==0.13.0
 reportlab==4.0.7
 APScheduler==3.10.4
-anthropic==0.18.0
+anthropic==0.39.0
 requests==2.31.0
 python-dateutil==2.8.2
 python-dotenv==1.0.0
 pytz==2023.3
 flask-mail==0.9.1
 email-reply-parser==0.5.12
-shopify-python-api==12.3.0
+ShopifyAPI==12.3.0
 imapclient==2.3.1
