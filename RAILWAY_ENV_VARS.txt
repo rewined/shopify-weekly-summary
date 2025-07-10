@@ -1,0 +1,38 @@
+# Copy and paste these environment variables into Railway
+
+# Shopify Configuration
+SHOPIFY_SHOP_DOMAIN=candlefish1.myshopify.com
+SHOPIFY_ACCESS_TOKEN=[REDACTED - Use actual token from .env]
+SHOPIFY_API_KEY=79475c9124b501b10a11e0e467d451e5
+
+# Email Configuration
+MAIL_SERVER=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USE_TLS=true
+MAIL_USERNAME=sophie@rewinedcandles.com
+MAIL_PASSWORD=[REDACTED - Use actual password from .env]
+MAIL_DEFAULT_SENDER=Sophie Blake <sophie@rewinedcandles.com>
+
+# Email Recipients
+EMAIL_RECIPIENTS=adam@rewinedcandles.com
+
+# IMAP Configuration for receiving replies
+IMAP_SERVER=imap.gmail.com
+IMAP_PORT=993
+IMAP_USERNAME=sophie@rewinedcandles.com
+IMAP_PASSWORD=[REDACTED - Use actual password from .env]
+
+# Claude AI Configuration
+ANTHROPIC_API_KEY=[REDACTED - Use actual API key from .env]
+
+# Scheduler Configuration
+SCHEDULER_TIMEZONE=America/New_York
+WEEKLY_REPORT_HOUR=8
+WEEKLY_REPORT_DAY=0
+
+# Application Configuration
+FLASK_SECRET_KEY=shopify-weekly-summary-prod-secret-2025
+DATABASE_PATH=data/feedback.db
+APP_URL=https://shopify-weekly-summary.up.railway.app
+
+# Railway will automatically set PORT environment variable

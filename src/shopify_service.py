@@ -9,7 +9,7 @@ class ShopifyService:
         self.shop_domain = os.getenv('SHOPIFY_SHOP_DOMAIN')
         self.access_token = os.getenv('SHOPIFY_ACCESS_TOKEN')
         self.api_key = os.getenv('SHOPIFY_API_KEY')
-        self.api_version = '2024-01'
+        self.api_version = '2023-10'  # Use a stable API version
         
         if not all([self.shop_domain, self.access_token]):
             raise ValueError("Missing Shopify configuration. Please check environment variables.")
