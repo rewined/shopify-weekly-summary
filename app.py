@@ -9,29 +9,32 @@ from src.shopify_report_generator import ShopifyReportGenerator
 from src.email_service import ConversationalEmailService
 from src.feedback_database import FeedbackDatabase
 from src.reply_processor import ReplyProcessor
-from src.scheduler import ReportScheduler
+from src.scheduler import ShopifyScheduler
 import pandas as pd
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'shopify-weekly-summary-secret-2024')
+
+# Mail configuration
+app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
+app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
+app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'True').lower() == 'true'
+app.config['MAIL_USE_SSL'] = os.environ.get('MAIL_USE_SSL', 'False').lower() == 'true'
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', os.environ.get('MAIL_USERNAME'))
 
 # Initialize services
 shopify_service = ShopifyService()
 analytics = ShopifyAnalytics(shopify_service)
 insights = ConversationalInsights()
 report_generator = ShopifyReportGenerator()
-email_service = ConversationalEmailService()
+email_service = ConversationalEmailService(app)
 feedback_db = FeedbackDatabase()
 reply_processor = ReplyProcessor(feedback_db)
 
 # Initialize scheduler
-scheduler = ReportScheduler(
-    shopify_service=shopify_service,
-    analytics=analytics,
-    insights=insights,
-    report_generator=report_generator,
-    email_service=email_service
-)
+scheduler = ShopifyScheduler(app)
 
 @app.route('/')
 def index():
@@ -65,27 +68,29 @@ def generate_report():
         
         # Generate report
         weekly_data = analytics.get_weekly_summary(start_date, end_date)
-        conversational_report = insights.generate_weekly_insights(
+        # Get feedback context for recipient
+        feedback_context = feedback_db.get_feedback_context(recipient_email)
+        
+        conversational_report = insights.generate_insights(
             weekly_data, 
             recipient_name,
-            feedback_db
+            feedback_context
         )
         
         # Generate PDF
-        pdf_path = report_generator.generate_pdf_report(
+        pdf_path = report_generator.generate_report(
             weekly_data,
-            conversational_report,
-            start_date,
-            end_date
+            conversational_report.get('insights_html', '')
         )
         
         # Send email
         email_service.send_weekly_report(
             recipient_email=recipient_email,
             recipient_name=recipient_name,
-            weekly_data=weekly_data,
-            conversational_report=conversational_report,
-            pdf_path=pdf_path
+            analytics_data=weekly_data,
+            insights=conversational_report.get('insights_html', ''),
+            questions=conversational_report.get('questions', []),
+            pdf_attachment=pdf_path
         )
         
         return jsonify({'success': True, 'message': 'Report sent successfully!'})
