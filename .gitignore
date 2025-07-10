@@ -37,3 +37,6 @@ logs/
 
 # Railway
 railway.json
+
+# Duplicate directories
+shopify-weekly-summary/
