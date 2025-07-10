@@ -9,7 +9,6 @@ class ShopifyService:
         self.shop_domain = os.getenv('SHOPIFY_SHOP_DOMAIN')
         self.access_token = os.getenv('SHOPIFY_ACCESS_TOKEN')
         self.api_key = os.getenv('SHOPIFY_API_KEY')
-        self.api_version = '2023-10'  # Use a stable API version
         
         if not all([self.shop_domain, self.access_token]):
             raise ValueError("Missing Shopify configuration. Please check environment variables.")
@@ -17,12 +16,13 @@ class ShopifyService:
         self._init_session()
     
     def _init_session(self):
-        session = shopify.Session(
-            self.shop_domain,
-            self.api_version,
-            self.access_token
+        # Use the latest stable version available
+        shopify.ShopifyResource.set_site(
+            f"https://{self.shop_domain}/admin/api/2023-07"
         )
-        shopify.ShopifyResource.activate_session(session)
+        shopify.ShopifyResource.set_headers({
+            'X-Shopify-Access-Token': self.access_token
+        })
     
     def get_orders_for_period(self, start_date: datetime, end_date: datetime) -> List[Dict]:
         try:
