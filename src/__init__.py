@@ -1,0 +1,1 @@
+# Shopify Weekly Summary package
