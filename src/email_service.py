@@ -135,9 +135,6 @@ class ConversationalEmailService:
         
         # If the insights already contain a complete email (starts with a greeting), use it as-is
         if insights_text and any(insights_text.lower().startswith(greeting) for greeting in ['hi ', 'hey ', 'hello ', 'good morning', 'good afternoon', 'morning']):
-            # Just add the P.S. about the attachment if it's not already there
-            if 'attached' not in insights_text.lower():
-                insights_text += "\n\nP.S. I attached the full report with all the details."
             return insights_text
         
         # Otherwise, use the fallback template (this should rarely happen with the new prompt)
@@ -179,9 +176,7 @@ Let me know if you have any questions or if there's anything specific you'd like
 
 Thanks,
 Sophie Blake
-Rewined Intern
-
-P.S. I attached the full report with all the details."""
+Rewined Intern"""
         return text
     
     def _format_top_products_section(self, analytics_data):

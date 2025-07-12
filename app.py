@@ -111,16 +111,8 @@ def generate_report():
                 'questions': []
             }
         
-        print("Generating PDF report...")
-        try:
-            # Generate PDF
-            pdf_path = report_generator.generate_report(
-                weekly_data,
-                conversational_report.get('insights_text', conversational_report.get('full_email', ''))
-            )
-        except Exception as e:
-            print(f"Error generating PDF: {str(e)}")
-            pdf_path = None
+        # Skip PDF generation to avoid timeouts
+        pdf_path = None
         
         print("Sending email...")
         # Send email

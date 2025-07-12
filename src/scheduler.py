@@ -119,11 +119,8 @@ class ShopifyScheduler:
                         feedback_context
                     )
                     
-                    # Generate PDF report
-                    pdf_path = report_generator.generate_report(
-                        analytics_data,
-                        ai_insights.get('insights_text', ai_insights.get('insights_html', ''))
-                    )
+                    # Skip PDF generation to avoid timeouts
+                    pdf_path = None
                     
                     # Send email
                     success = self.email_service.send_weekly_report(
@@ -210,11 +207,8 @@ class ShopifyScheduler:
                 feedback_context
             )
             
-            # Generate PDF
-            pdf_path = report_generator.generate_report(
-                analytics_data,
-                ai_insights.get('insights_text', ai_insights.get('insights_html', ''))
-            )
+            # Skip PDF generation to avoid timeouts
+            pdf_path = None
             
             # Send email
             success = self.email_service.send_weekly_report(
