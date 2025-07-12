@@ -369,6 +369,62 @@ Boston:
         import traceback
         return f"<pre>Error: {str(e)}\n\n{traceback.format_exc()}</pre>", 500
 
+@app.route('/test-email-generation')
+def test_email_generation():
+    """Test the email generation process"""
+    if not insights:
+        init_services()
+    
+    try:
+        # Create sample analytics data
+        sample_data = {
+            'week_start': '2024-12-30',
+            'week_end': '2025-01-05',
+            'total_revenue': 13406.50,
+            'total_orders': 250,
+            'avg_order_value': 53.63,
+            'current_week_by_location': {
+                'charleston': {'order_count': 150, 'total_revenue': 7000, 'avg_order_value': 46.67},
+                'boston': {'order_count': 100, 'total_revenue': 6406.50, 'avg_order_value': 64.07}
+            },
+            'goals': {
+                'charleston': {'revenue_goal': 25000, 'avg_ticket_goal': 89},
+                'boston': {'revenue_goal': 100000, 'avg_ticket_goal': 75}
+            },
+            'conversion_metrics': {
+                'charleston': {'revenue_vs_goal_pct': 32, 'avg_ticket_vs_goal_pct': 52},
+                'boston': {'revenue_vs_goal_pct': 6, 'avg_ticket_vs_goal_pct': 85}
+            }
+        }
+        
+        # Generate insights
+        result = insights.generate_insights(sample_data, 'Adam', {})
+        
+        # Create detailed debug output
+        debug_output = {
+            'raw_result_keys': list(result.keys()),
+            'has_insights_text': 'insights_text' in result,
+            'has_full_email': 'full_email' in result,
+            'insights_text_preview': result.get('insights_text', '')[:200] if 'insights_text' in result else None,
+            'full_email_preview': result.get('full_email', '')[:200] if 'full_email' in result else None,
+            'questions': result.get('questions', []),
+            'result_type': type(result).__name__
+        }
+        
+        # Also show what the email service would receive
+        insights_content = result.get('insights_text', result.get('full_email', ''))
+        debug_output['email_content_preview'] = insights_content[:500] if insights_content else None
+        debug_output['email_starts_with_json'] = insights_content.strip().startswith('{') if insights_content else False
+        
+        return jsonify(debug_output)
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
 if __name__ == '__main__':
     # Initialize services
     init_services()

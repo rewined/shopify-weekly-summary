@@ -2,6 +2,7 @@ import os
 from typing import Dict, List, Any
 import anthropic
 import json
+import re
 from datetime import datetime
 
 
@@ -133,8 +134,29 @@ class ConversationalInsights:
                 print(f"JSON decode error: {e}")
                 print(f"Content was: {content[:200]}...")
                 
-                # Try to extract the email from the content if it has JSON structure
+                # Try multiple extraction methods
+                email_text = None
+                questions = []
+                
+                # Method 1: Try to extract using regex
                 if '"full_email"' in content:
+                    email_match = re.search(r'"full_email"\s*:\s*"([^"]+(?:\\.[^"]+)*)"', content, re.DOTALL)
+                    if email_match:
+                        email_text = email_match.group(1)
+                        # Unescape the string
+                        email_text = email_text.replace('\\n', '\n').replace('\\"', '"').replace('\\\\', '\\')
+                        print("Extracted email using regex")
+                        
+                        # Try to extract questions too
+                        questions_match = re.search(r'"questions"\s*:\s*\[(.*?)\]', content, re.DOTALL)
+                        if questions_match:
+                            questions_str = questions_match.group(1)
+                            # Extract individual questions
+                            question_matches = re.findall(r'"([^"]+)"', questions_str)
+                            questions = question_matches
+                
+                # Method 2: Try to find and parse JSON object
+                if not email_text and '"full_email"' in content:
                     try:
                         # Find the JSON object in the content
                         start = content.find('{')
@@ -143,23 +165,21 @@ class ConversationalInsights:
                             json_str = content[start:end]
                             parsed = json.loads(json_str)
                             if 'full_email' in parsed:
-                                result = {
-                                    "insights_text": parsed['full_email'],
-                                    "questions": parsed.get('questions', [])
-                                }
-                            else:
-                                raise ValueError("No full_email in parsed JSON")
-                        else:
-                            raise ValueError("No JSON object found")
+                                email_text = parsed['full_email']
+                                questions = parsed.get('questions', [])
+                                print("Extracted email by parsing JSON object")
                     except Exception as parse_error:
-                        print(f"Failed to extract JSON from content: {parse_error}")
-                        # Final fallback - just use the content as is
-                        result = {
-                            "insights_text": content,
-                            "questions": []
-                        }
+                        print(f"Failed to extract JSON object: {parse_error}")
+                
+                # Set the result
+                if email_text:
+                    result = {
+                        "insights_text": email_text,
+                        "questions": questions if questions else []
+                    }
                 else:
-                    # Fallback if not valid JSON and no full_email found
+                    # Final fallback - just use the content as is
+                    print("Using content as-is (fallback)")
                     result = {
                         "insights_text": content,
                         "questions": [
