@@ -31,19 +31,21 @@ class ConversationalEmailService:
     
     def get_opening_line(self):
         openings = [
-            "Hope you had a fantastic weekend!",
-            "Trust your week is off to a great start!",
-            "Hope this Monday finds you well!",
-            "Another week, another opportunity to shine!",
+            "Hope you had an awesome weekend!",
+            "Happy Monday!",
+            "Hope your week's starting off great!",
+            "Another week, another batch of data to dig through!",
+            "Hope you're ready for some numbers!",
         ]
         return random.choice(openings)
     
     def get_closing(self):
         closings = [
-            "Looking forward to hearing your thoughts!",
-            "Can't wait to hear what you think!",
-            "Would love to hear your perspective on this!",
-            "Excited to hear your insights!",
+            "Let me know what you think!",
+            "Can't wait to hear back from you!",
+            "Would love to know if I'm on the right track here!",
+            "Super curious to hear your thoughts!",
+            "Hit me back with any questions!",
         ]
         return random.choice(closings)
     
@@ -51,8 +53,9 @@ class ConversationalEmailService:
         sign_offs = [
             "Cheers",
             "Best",
-            "Warmly",
+            "Thanks",
             "Talk soon",
+            "-Sophie",
         ]
         return random.choice(sign_offs)
     
@@ -127,22 +130,13 @@ class ConversationalEmailService:
             </div>
             
             <p>{self.get_greeting().format(name=recipient_name)}</p>
-            <p>{self.get_opening_line()} I've been digging through your numbers from last week, and I've got some interesting insights to share.</p>
+            <p>{self.get_opening_line()} So I just finished crunching through last week's numbers and found some pretty interesting stuff I think you'll want to see!</p>
             
-            <h2>🌟 Your Week in Highlights</h2>
-            <div class="highlight-box">
-                <div class="metric">
-                    <div class="metric-value">${analytics_data['total_revenue']:,.2f}</div>
-                    <div class="metric-label">Total Revenue</div>
-                </div>
-                <div class="metric">
-                    <div class="metric-value">{analytics_data['total_orders']}</div>
-                    <div class="metric-label">Orders</div>
-                </div>
-                <div class="metric">
-                    <div class="metric-value">${analytics_data['avg_order_value']:.2f}</div>
-                    <div class="metric-label">Avg Order Value</div>
-                </div>
+            <h2>🌟 Here's What Happened This Week</h2>
+            <div class="highlight-box" style="font-size: 16px; line-height: 1.6;">
+                <p style="margin: 0;">You guys brought in <strong style="color: #667eea; font-size: 24px;">${analytics_data['total_revenue']:,.2f}</strong> this week! 
+                That came from <strong>{analytics_data['total_orders']}</strong> happy customers, 
+                with each one spending about <strong>${analytics_data['avg_order_value']:.2f}</strong> on average.</p>
             </div>
             
             {self._format_top_products_section(analytics_data)}
@@ -157,7 +151,7 @@ class ConversationalEmailService:
             
             <p>{self.get_sign_off()},<br>
             Sophie Blake<br>
-            <span style="font-size: 12px; color: #718096;">Your Friendly Analytics Assistant</span></p>
+            <span style="font-size: 12px; color: #718096;">Rewined Intern</span></p>
             
             <a href="{os.getenv('APP_URL', 'http://localhost:5000')}/shopify-summary" class="cta">View Full Dashboard</a>
             
@@ -175,13 +169,12 @@ class ConversationalEmailService:
         text = f"""
 {self.get_greeting().format(name=recipient_name)}
 
-{self.get_opening_line()} I've been digging through your numbers from last week, and I've got some interesting insights to share.
+{self.get_opening_line()} So I just finished crunching through last week's numbers and found some pretty interesting stuff I think you'll want to see!
 
-YOUR WEEK IN HIGHLIGHTS
-=======================
-Total Revenue: ${analytics_data['total_revenue']:,.2f}
-Orders: {analytics_data['total_orders']}
-Average Order Value: ${analytics_data['avg_order_value']:.2f}
+HERE'S WHAT HAPPENED THIS WEEK
+==============================
+You guys brought in ${analytics_data['total_revenue']:,.2f} this week! That came from {analytics_data['total_orders']} happy customers, 
+with each one spending about ${analytics_data['avg_order_value']:.2f} on average.
 
 WHAT CAUGHT MY EYE
 ==================
@@ -195,7 +188,7 @@ I'M CURIOUS ABOUT...
 
 {self.get_sign_off()},
 Sophie Blake
-Your Friendly Analytics Assistant
+Rewined Intern
 
 P.S. Full report attached if you want all the nerdy details!
 
@@ -215,41 +208,35 @@ View Full Dashboard: {os.getenv('APP_URL', 'http://localhost:5000')}/shopify-sum
             return ""
         
         section = """
-        <h2>🏆 Top Sellers by Store</h2>
-        <div style="display: flex; gap: 20px; margin: 20px 0;">
-            <div style="flex: 1; background: #f0f7ff; padding: 15px; border-radius: 8px;">
-                <h3 style="margin-top: 0; color: #667eea;">Charleston</h3>
+        <h2>🏆 What's Flying Off the Shelves</h2>
+        <div style="font-size: 16px; line-height: 1.6; margin: 20px 0;">
         """
         
-        for i, product in enumerate(charleston_products):
+        if charleston_products:
             section += f"""
-                <div style="margin: 10px 0;">
-                    <div style="font-weight: bold;">{i+1}. {product['product'][:35]}{'...' if len(product['product']) > 35 else ''}</div>
-                    <div style="color: #718096; font-size: 14px;">${product['revenue']:,.0f} ({product['quantity_sold']} sold)</div>
-                </div>
-            """
-        
-        section += """
-            </div>
-            <div style="flex: 1; background: #fff0f5; padding: 15px; border-radius: 8px;">
-                <h3 style="margin-top: 0; color: #d53f8c;">Boston</h3>
-        """
+            <p><strong style="color: #667eea;">In Charleston:</strong> Your customers are loving 
+            <strong>{charleston_products[0]['product'][:40]}{'...' if len(charleston_products[0]['product']) > 40 else ''}</strong> 
+            (sold {charleston_products[0]['quantity_sold']} for ${charleston_products[0]['revenue']:,.0f})"""
+            
+            if len(charleston_products) > 1:
+                section += f""", followed by <strong>{charleston_products[1]['product'][:30]}{'...' if len(charleston_products[1]['product']) > 30 else ''}</strong>"""
+            
+            section += ".</p>"
         
         if boston_products:
-            for i, product in enumerate(boston_products):
-                section += f"""
-                    <div style="margin: 10px 0;">
-                        <div style="font-weight: bold;">{i+1}. {product['product'][:35]}{'...' if len(product['product']) > 35 else ''}</div>
-                        <div style="color: #718096; font-size: 14px;">${product['revenue']:,.0f} ({product['quantity_sold']} sold)</div>
-                    </div>
-                """
-        else:
-            section += '<div style="color: #718096;">No sales data yet</div>'
+            section += f"""
+            <p><strong style="color: #d53f8c;">In Boston:</strong> The top pick is 
+            <strong>{boston_products[0]['product'][:40]}{'...' if len(boston_products[0]['product']) > 40 else ''}</strong> 
+            (moved {boston_products[0]['quantity_sold']} units for ${boston_products[0]['revenue']:,.0f})"""
+            
+            if len(boston_products) > 1:
+                section += f""", with <strong>{boston_products[1]['product'][:30]}{'...' if len(boston_products[1]['product']) > 30 else ''}</strong> coming in second"""
+            
+            section += ".</p>"
+        elif analytics_data.get('current_week_by_location', {}).get('boston', {}).get('order_count', 0) == 0:
+            section += '<p><strong style="color: #d53f8c;">Boston:</strong> Still warming up - no sales data this week.</p>'
         
-        section += """
-            </div>
-        </div>
-        """
+        section += "</div>"
         
         return section
     

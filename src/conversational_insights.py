@@ -42,7 +42,7 @@ class ConversationalInsights:
             recent = self.conversation_history[-3:]
             context += f"\n\nRecent conversation topics: {json.dumps(recent, indent=2)}"
         
-        prompt = f"""You are Sophie Blake, a friendly business analytics consultant for Candlefish. 
+        prompt = f"""You are Sophie Blake, an enthusiastic intern at Rewined helping with Candlefish analytics. 
         
         Important business context:
         - Candlefish has TWO physical store locations: Charleston (open since 2014) and Boston (opened July 2024)
@@ -53,7 +53,8 @@ class ConversationalInsights:
           - Charleston: https://docs.google.com/spreadsheets/d/1pbfEpXk-yerQnjaMkML-dVkqcO-fnvu15M3GKcwMqEI/edit?usp=sharing
           - Boston: https://docs.google.com/spreadsheets/d/1k7bH5KRDtogwpxnUAktbfwxeAr-FjMg_rOkK__U878k/edit?usp=sharing
         
-        You write conversational, warm emails to {recipient_name}.
+        You write conversational, warm emails to {recipient_name}. You're an eager intern who's genuinely excited 
+        about finding insights in the data. You speak casually and enthusiastically, like you're chatting with a colleague.
         
         Here's this week's data to analyze:
         {json.dumps(analytics_data, indent=2)}
@@ -74,14 +75,16 @@ class ConversationalInsights:
         Format your response as JSON with keys: "insights_html" and "questions"
         
         Guidelines:
-        - Be conversational and friendly, not corporate
-        - Reference specific numbers but explain what they mean
+        - Write like an enthusiastic intern, not a corporate consultant
+        - Be genuinely excited about good news and curious about patterns
+        - Use casual language like "wow", "looks like", "I noticed", "pretty cool"
+        - Reference specific numbers but explain them conversationally
         - If there's past feedback, reference it naturally
-        - Celebrate wins enthusiastically
-        - Be curious about anomalies
-        - Ask questions that show you're paying attention
-        - Use casual language and contractions
+        - Celebrate wins with genuine excitement
+        - Be curious and ask questions like you're learning the business
+        - Use contractions and speak naturally
         - Include relevant emojis sparingly (1-2 total)
+        - Sound like you're in your early 20s and eager to help
         """
         
         try:
@@ -157,25 +160,25 @@ class ConversationalInsights:
         products = analytics_data.get('product_performance', [])
         
         insights = f"""
-        <p>Hey there! I've been looking at your numbers for the week, and there's some interesting stuff happening.</p>
+        <p>Hey! So I've been digging through this week's numbers and wow, there's some cool stuff happening!</p>
         
-        <p>You brought in <strong>${current.get('total_revenue', 0):,.2f}</strong> from 
+        <p>You guys pulled in <strong>${current.get('total_revenue', 0):,.2f}</strong> from 
         <strong>{current.get('order_count', 0)}</strong> orders this week. 
-        {"That's up " + str(abs(yoy.get('total_revenue_change', 0))) + "% from last year - nice work!" 
+        {"That's up " + str(abs(yoy.get('total_revenue_change', 0))) + "% from last year - that's awesome!" 
          if yoy.get('total_revenue_change', 0) > 0 
-         else "That's a bit down from last year, but every business has its cycles."}
+         else "It's down a bit from last year, but honestly, that happens sometimes."}
         </p>
         
-        <p>{"Your top seller was <strong>" + products[0]['product'] + "</strong> - customers really seem to love it! " 
+        <p>{"Oh, and <strong>" + products[0]['product'] + "</strong> was your top seller - people are really into it! " 
            if products else ""}
-        I noticed your average order value is <strong>${current.get('avg_order_value', 0):.2f}</strong>, 
-        which tells me customers are finding multiple things they like.</p>
+        I noticed customers are spending about <strong>${current.get('avg_order_value', 0):.2f}</strong> per order, 
+        which is pretty solid - looks like they're finding multiple things they love!</p>
         """
         
         questions = [
-            "I noticed some interesting patterns this week - was there a special event or promotion running?",
-            "Your workshop numbers look intriguing - are you planning any new class types?",
-            "What's the story behind your top-selling products this week?"
+            "So I noticed some interesting patterns this week - did you guys have any special events or promotions going on?",
+            "Your workshop numbers caught my eye - are there any new classes coming up that I should know about?",
+            "What's the deal with your best sellers this week? Any cool stories behind why they're so popular?"
         ]
         
         return {
