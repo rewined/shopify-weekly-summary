@@ -178,7 +178,11 @@ class ShopifyAnalytics:
                     change = ((current_loc.get(metric, 0) - previous_loc.get(metric, 0)) / previous_loc.get(metric, 0)) * 100
                     changes[location][f'{metric}_change'] = round(change, 1)
                 else:
-                    changes[location][f'{metric}_change'] = 100 if current_loc.get(metric, 0) > 0 else 0
+                    # Boston opened August 2024, so YoY comparisons are not meaningful
+                    if location == 'boston':
+                        changes[location][f'{metric}_change'] = None  # Use None to indicate N/A
+                    else:
+                        changes[location][f'{metric}_change'] = 100 if current_loc.get(metric, 0) > 0 else 0
         
         # Keep backward compatibility - return 'all' metrics at root level
         for metric, value in changes['all'].items():
