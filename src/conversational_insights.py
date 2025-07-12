@@ -194,14 +194,15 @@ class ConversationalInsights:
                     goals = analytics_data.get('goals', {})
                     conversion_metrics = analytics_data.get('conversion_metrics', {})
                     if goals and conversion_metrics:
-                        print(f"\nGOALS DATA (from Google Sheets?):")
+                        print(f"\nGOALS DATA (HARDCODED PLACEHOLDERS - NOT from spreadsheets):")
                         charleston_goals = goals.get('charleston', {})
                         boston_goals = goals.get('boston', {})
                         charleston_metrics = conversion_metrics.get('charleston', {})
                         boston_metrics = conversion_metrics.get('boston', {})
                         
-                        print(f"  Charleston: {charleston_metrics.get('revenue_vs_goal_pct', 'N/A')}% of ${charleston_goals.get('revenue_goal', 'N/A')} goal")
-                        print(f"  Boston: {boston_metrics.get('revenue_vs_goal_pct', 'N/A')}% of ${boston_goals.get('revenue_goal', 'N/A')} goal")
+                        print(f"  Charleston: {charleston_metrics.get('revenue_vs_goal_pct', 'N/A')}% of ${charleston_goals.get('revenue_goal', 'N/A')} goal (hardcoded)")
+                        print(f"  Boston: {boston_metrics.get('revenue_vs_goal_pct', 'N/A')}% of ${boston_goals.get('revenue_goal', 'N/A')} goal (hardcoded)")
+                        print(f"  NOTE: Goals are hardcoded in _get_store_goals() method, not from spreadsheets")
                     
                     # Show product performance
                     products = analytics_data.get('product_performance', [])
