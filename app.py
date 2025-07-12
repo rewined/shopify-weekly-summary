@@ -160,6 +160,44 @@ def health():
     """Health check endpoint"""
     return jsonify({'status': 'healthy', 'timestamp': datetime.now().isoformat()})
 
+@app.route('/test-analytics')
+def test_analytics():
+    """Test analytics without sending email"""
+    if not shopify_service:
+        init_services()
+    
+    try:
+        # Get last week's data
+        today = datetime.now()
+        days_since_monday = today.weekday()
+        week_start = today - timedelta(days=days_since_monday + 7)
+        
+        # Get basic analytics without trends
+        print("Testing analytics fetch...")
+        weekly_data = analytics.analyze_weekly_data(week_start, include_trends=False)
+        
+        # Extract key metrics
+        summary = {
+            'success': True,
+            'week': weekly_data['week_start'],
+            'total_revenue': weekly_data['total_revenue'],
+            'total_orders': weekly_data['total_orders'],
+            'charleston_orders': weekly_data['current_week_by_location']['charleston']['order_count'],
+            'boston_orders': weekly_data['current_week_by_location']['boston']['order_count'],
+            'product_categories': {
+                cat: {'revenue': data['revenue'], 'items': data['count']}
+                for cat, data in weekly_data.get('product_categories', {}).items()
+            } if 'product_categories' in weekly_data else None
+        }
+        
+        return jsonify(summary)
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/test-shopify')
 def test_shopify():
     """Test Shopify connection"""
