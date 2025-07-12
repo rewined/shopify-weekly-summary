@@ -24,21 +24,34 @@ app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', os.environ.get('MAIL_USERNAME'))
 
-# Initialize services
-shopify_service = ShopifyService()
-analytics = ShopifyAnalytics(shopify_service)
-insights = ConversationalInsights()
-report_generator = ShopifyReportGenerator()
-email_service = ConversationalEmailService(app)
-feedback_db = FeedbackDatabase()
-reply_processor = ReplyProcessor(feedback_db)
+# Initialize services with lazy loading
+shopify_service = None
+analytics = None
+insights = None
+report_generator = None
+email_service = None
+feedback_db = None
+reply_processor = None
+scheduler = None
 
-# Initialize scheduler
-scheduler = ShopifyScheduler(app)
+def init_services():
+    global shopify_service, analytics, insights, report_generator, email_service, feedback_db, reply_processor, scheduler
+    
+    shopify_service = ShopifyService()
+    analytics = ShopifyAnalytics(shopify_service)
+    insights = ConversationalInsights()
+    report_generator = ShopifyReportGenerator()
+    email_service = ConversationalEmailService(app)
+    feedback_db = FeedbackDatabase()
+    reply_processor = ReplyProcessor(feedback_db)
+    scheduler = ShopifyScheduler(app)
 
 @app.route('/')
 def index():
     """Main page for Shopify Weekly Summary"""
+    if not feedback_db:
+        init_services()
+    
     # Get recent feedback
     recent_feedback = feedback_db.get_recent_feedback(limit=10)
     
@@ -55,6 +68,9 @@ def index():
 @app.route('/generate-report', methods=['POST'])
 def generate_report():
     """Generate and send weekly report"""
+    if not shopify_service:
+        init_services()
+    
     try:
         data = request.json
         recipient_email = data.get('email')
@@ -101,6 +117,9 @@ def generate_report():
 @app.route('/send-test-email', methods=['POST'])
 def send_test_email():
     """Send a test email"""
+    if not email_service:
+        init_services()
+    
     try:
         data = request.json
         recipient_email = data.get('email')
@@ -116,6 +135,9 @@ def send_test_email():
 @app.route('/process-replies', methods=['POST'])
 def process_replies():
     """Manually trigger reply processing"""
+    if not reply_processor:
+        init_services()
+    
     try:
         count = reply_processor.process_new_replies()
         return jsonify({
@@ -131,6 +153,9 @@ def health():
     return jsonify({'status': 'healthy', 'timestamp': datetime.now().isoformat()})
 
 if __name__ == '__main__':
+    # Initialize services
+    init_services()
+    
     # Start the scheduler
     scheduler.start()
     
