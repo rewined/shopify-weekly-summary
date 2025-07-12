@@ -108,6 +108,10 @@ class ConversationalInsights:
         - If you see YoY growth over 1000%, question if it's a data error or comparison issue
         - Boston didn't exist last year, so YoY comparisons are meaningless - acknowledge this
         - Always sanity-check extreme numbers and mention if something seems off
+        - When mentioning specific numbers (revenue, orders, percentages), make sure they come from the actual data provided
+        - If you do calculations (like $408/12 units), double-check your math
+        - Don't make assumptions about data that isn't provided (like specific product revenues)
+        - Keep emails complete - don't cut off mid-sentence
         
         Remember: You're writing ONE complete email. Make it feel real and different each time.
         
@@ -119,7 +123,7 @@ class ConversationalInsights:
         try:
             response = self.client.messages.create(
                 model="claude-3-sonnet-20240229",
-                max_tokens=1500,
+                max_tokens=2500,  # Increased to prevent cutoffs
                 temperature=0.9,  # Higher temperature for more variation
                 messages=[
                     {"role": "user", "content": prompt}
@@ -139,6 +143,70 @@ class ConversationalInsights:
             try:
                 result = json.loads(content)
                 print(f"Successfully parsed JSON with keys: {result.keys()}")
+                
+                # Add detailed logging of Sophie's data sources and calculations
+                print("\n=== SOPHIE'S EMAIL ANALYSIS ===")
+                email_text = result.get('full_email', '')
+                
+                # Log key numbers Sophie mentions
+                import re
+                revenue_mentions = re.findall(r'\$([0-9,]+(?:\.[0-9]{2})?)', email_text)
+                percentage_mentions = re.findall(r'([0-9]+(?:\.[0-9]+)?%)', email_text)
+                order_mentions = re.findall(r'([0-9]+) orders?', email_text, re.IGNORECASE)
+                
+                print(f"Revenue figures Sophie mentioned: {revenue_mentions}")
+                print(f"Percentages Sophie mentioned: {percentage_mentions}")
+                print(f"Order counts Sophie mentioned: {order_mentions}")
+                
+                # Log the actual data she had access to
+                charleston_data = analytics_data.get('current_week_by_location', {}).get('charleston', {})
+                boston_data = analytics_data.get('current_week_by_location', {}).get('boston', {})
+                total_data = analytics_data.get('current_week_by_location', {}).get('all', {})
+                
+                print(f"\nActual Charleston data: Revenue=${charleston_data.get('total_revenue', 0):.2f}, Orders={charleston_data.get('order_count', 0)}")
+                print(f"Actual Boston data: Revenue=${boston_data.get('total_revenue', 0):.2f}, Orders={boston_data.get('order_count', 0)}")
+                print(f"Actual Total data: Revenue=${total_data.get('total_revenue', 0):.2f}, Orders={total_data.get('order_count', 0)}")
+                
+                # Check for accuracy
+                accuracy_issues = []
+                if revenue_mentions:
+                    for rev_str in revenue_mentions:
+                        rev_num = float(rev_str.replace(',', ''))
+                        # Check if it matches any of our actual revenue numbers (within $10)
+                        actual_revenues = [
+                            charleston_data.get('total_revenue', 0),
+                            boston_data.get('total_revenue', 0),
+                            total_data.get('total_revenue', 0)
+                        ]
+                        if not any(abs(rev_num - actual) < 10 for actual in actual_revenues):
+                            accuracy_issues.append(f"Sophie mentioned ${rev_str} but actual revenues are {actual_revenues}")
+                
+                if order_mentions:
+                    for order_str in order_mentions:
+                        order_num = int(order_str)
+                        actual_orders = [
+                            charleston_data.get('order_count', 0),
+                            boston_data.get('order_count', 0),
+                            total_data.get('order_count', 0)
+                        ]
+                        if not any(abs(order_num - actual) < 3 for actual in actual_orders):
+                            accuracy_issues.append(f"Sophie mentioned {order_str} orders but actual orders are {actual_orders}")
+                
+                if accuracy_issues:
+                    print(f"\n⚠️  ACCURACY ISSUES: {accuracy_issues}")
+                
+                # Log conversion metrics if available
+                conversion_metrics = analytics_data.get('conversion_metrics', {})
+                if conversion_metrics:
+                    print(f"Actual conversion data: {conversion_metrics}")
+                
+                # Log goals data if available
+                goals = analytics_data.get('goals', {})
+                if goals:
+                    print(f"Actual goals data: {goals}")
+                
+                print("=== END ANALYSIS ===\n")
+                
                 # Handle new format with full_email
                 if 'full_email' in result:
                     result['insights_text'] = result['full_email']
