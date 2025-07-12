@@ -259,3 +259,99 @@ Analytics System
             
         except Exception as e:
             print(f"Error sending error notification: {str(e)}")
+    
+    def send_test_email(self, recipient_email: str):
+        """Send a test email to verify configuration"""
+        try:
+            msg = Message(
+                subject="🎉 Sophie Blake here - Your Shopify Analytics are ready!",
+                sender=os.getenv('MAIL_DEFAULT_SENDER'),
+                recipients=[recipient_email],
+                reply_to=os.getenv('MAIL_USERNAME')
+            )
+            
+            msg.html = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body {{
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                        line-height: 1.6;
+                        color: #333;
+                        max-width: 600px;
+                        margin: 0 auto;
+                        padding: 20px;
+                    }}
+                    .header {{
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white;
+                        padding: 30px;
+                        border-radius: 10px;
+                        margin-bottom: 30px;
+                    }}
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h1 style="margin: 0;">Test Email from Sophie Blake 🕯️</h1>
+                    <p style="margin: 10px 0 0 0;">Your Analytics Assistant</p>
+                </div>
+                
+                <p>Hey there! 👋</p>
+                
+                <p>Great news - your email configuration is working perfectly! This is Sophie Blake, your friendly analytics assistant for Candlefish.</p>
+                
+                <p>When you receive your weekly reports, they'll include:</p>
+                <ul>
+                    <li>📊 Weekly sales performance and trends</li>
+                    <li>🎯 Top-performing products</li>
+                    <li>👥 Customer insights</li>
+                    <li>📈 Year-over-year comparisons</li>
+                    <li>💡 AI-powered insights and recommendations</li>
+                </ul>
+                
+                <p>The best part? You can simply reply to my emails with any context, questions, or feedback, and I'll incorporate that into future reports!</p>
+                
+                <p>Looking forward to helping you understand your business better!</p>
+                
+                <p>Cheers,<br>
+                Sophie Blake<br>
+                <span style="font-size: 12px; color: #718096;">Your Friendly Analytics Assistant</span></p>
+                
+                <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0; font-size: 14px; color: #718096;">
+                    <p>P.S. You'll receive your weekly reports every Monday morning!</p>
+                </div>
+            </body>
+            </html>
+            """
+            
+            msg.body = """
+Hey there! 👋
+
+Great news - your email configuration is working perfectly! This is Sophie Blake, your friendly analytics assistant for Candlefish.
+
+When you receive your weekly reports, they'll include:
+- Weekly sales performance and trends
+- Top-performing products
+- Customer insights
+- Year-over-year comparisons
+- AI-powered insights and recommendations
+
+The best part? You can simply reply to my emails with any context, questions, or feedback, and I'll incorporate that into future reports!
+
+Looking forward to helping you understand your business better!
+
+Cheers,
+Sophie Blake
+Your Friendly Analytics Assistant
+
+P.S. You'll receive your weekly reports every Monday morning!
+            """
+            
+            self.mail.send(msg)
+            return True
+            
+        except Exception as e:
+            print(f"Error sending test email: {str(e)}")
+            raise
