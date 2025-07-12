@@ -43,7 +43,7 @@ def init_services():
     report_generator = ShopifyReportGenerator()
     email_service = ConversationalEmailService(app)
     feedback_db = FeedbackDatabase()
-    reply_processor = ReplyProcessor(feedback_db)
+    reply_processor = ReplyProcessor()
     scheduler = ShopifyScheduler(app)
 
 @app.route('/')
@@ -52,8 +52,9 @@ def index():
     if not feedback_db:
         init_services()
     
-    # Get recent feedback
-    recent_feedback = feedback_db.get_recent_feedback(limit=10)
+    # For now, we'll set recent_feedback to empty list
+    # TODO: Implement get_recent_feedback method if needed
+    recent_feedback = []
     
     # Get the current week's dates
     today = datetime.now()
@@ -85,7 +86,7 @@ def generate_report():
         # Generate report
         weekly_data = analytics.get_weekly_summary(start_date, end_date)
         # Get feedback context for recipient
-        feedback_context = feedback_db.get_feedback_context(recipient_email)
+        feedback_context = feedback_db.get_feedback_context_for_email(recipient_email)
         
         conversational_report = insights.generate_insights(
             weekly_data, 
