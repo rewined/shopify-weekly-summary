@@ -69,6 +69,13 @@ class ShopifyAnalytics:
         # Get product performance
         product_performance = self._analyze_product_performance(current_orders)
         
+        # Get product performance by location
+        product_performance_by_location = {
+            'charleston': self._analyze_product_performance(current_charleston),
+            'boston': self._analyze_product_performance(current_boston),
+            'online': self._analyze_product_performance(current_online)
+        }
+        
         # Get workshop analytics
         workshop_data = self._analyze_workshops(current_orders)
         
@@ -87,6 +94,7 @@ class ShopifyAnalytics:
             'previous_year_by_location': prev_year_metrics,
             'yoy_changes': yoy_changes,
             'product_performance': product_performance,
+            'product_performance_by_location': product_performance_by_location,
             'workshop_analytics': workshop_data,
             'customer_insights': customer_insights,
             'trends': trends,

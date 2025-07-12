@@ -155,6 +155,52 @@ class ShopifyReportGenerator:
         
         story.append(Spacer(1, 0.5*inch))
         
+        # Top Products by Location
+        if 'product_performance_by_location' in analytics_data:
+            story.append(Paragraph("Top Products by Location", self.styles['SectionHeader']))
+            
+            # Charleston Top Products
+            charleston_products = analytics_data['product_performance_by_location']['charleston'][:3]
+            boston_products = analytics_data['product_performance_by_location']['boston'][:3]
+            
+            location_data = [['Charleston Store', 'Boston Store']]
+            
+            # Create side-by-side comparison
+            max_products = max(len(charleston_products), len(boston_products))
+            for i in range(max_products):
+                charleston_item = ""
+                boston_item = ""
+                
+                if i < len(charleston_products):
+                    p = charleston_products[i]
+                    charleston_item = f"{i+1}. {p['product'][:30]}{'...' if len(p['product']) > 30 else ''}\n   ${p['revenue']:,.0f} ({p['quantity_sold']} sold)"
+                
+                if i < len(boston_products):
+                    p = boston_products[i]
+                    boston_item = f"{i+1}. {p['product'][:30]}{'...' if len(p['product']) > 30 else ''}\n   ${p['revenue']:,.0f} ({p['quantity_sold']} sold)"
+                
+                location_data.append([charleston_item, boston_item])
+            
+            location_table = Table(location_data, colWidths=[3*inch, 3*inch])
+            location_table.setStyle(TableStyle([
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 12),
+                ('FONTSIZE', (0, 1), (-1, -1), 9),
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#667eea')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f7fafc')]),
+                ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#e2e8f0')),
+                ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                ('TOPPADDING', (0, 1), (-1, -1), 8),
+                ('BOTTOMPADDING', (0, 1), (-1, -1), 8)
+            ]))
+            
+            story.append(location_table)
+            story.append(Spacer(1, 0.5*inch))
+        
         # Workshop Analytics
         workshops = analytics_data.get('workshop_analytics', {})
         if workshops.get('attendees', 0) > 0:

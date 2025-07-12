@@ -145,6 +145,8 @@ class ConversationalEmailService:
                 </div>
             </div>
             
+            {self._format_top_products_section(analytics_data)}
+            
             <h2>💡 What Caught My Eye</h2>
             {insights}
             
@@ -200,6 +202,56 @@ P.S. Full report attached if you want all the nerdy details!
 View Full Dashboard: {os.getenv('APP_URL', 'http://localhost:5000')}/shopify-summary
         """
         return text
+    
+    def _format_top_products_section(self, analytics_data):
+        """Format top products by location for email"""
+        if 'product_performance_by_location' not in analytics_data:
+            return ""
+        
+        charleston_products = analytics_data['product_performance_by_location']['charleston'][:3]
+        boston_products = analytics_data['product_performance_by_location']['boston'][:3]
+        
+        if not charleston_products and not boston_products:
+            return ""
+        
+        section = """
+        <h2>🏆 Top Sellers by Store</h2>
+        <div style="display: flex; gap: 20px; margin: 20px 0;">
+            <div style="flex: 1; background: #f0f7ff; padding: 15px; border-radius: 8px;">
+                <h3 style="margin-top: 0; color: #667eea;">Charleston</h3>
+        """
+        
+        for i, product in enumerate(charleston_products):
+            section += f"""
+                <div style="margin: 10px 0;">
+                    <div style="font-weight: bold;">{i+1}. {product['product'][:35]}{'...' if len(product['product']) > 35 else ''}</div>
+                    <div style="color: #718096; font-size: 14px;">${product['revenue']:,.0f} ({product['quantity_sold']} sold)</div>
+                </div>
+            """
+        
+        section += """
+            </div>
+            <div style="flex: 1; background: #fff0f5; padding: 15px; border-radius: 8px;">
+                <h3 style="margin-top: 0; color: #d53f8c;">Boston</h3>
+        """
+        
+        if boston_products:
+            for i, product in enumerate(boston_products):
+                section += f"""
+                    <div style="margin: 10px 0;">
+                        <div style="font-weight: bold;">{i+1}. {product['product'][:35]}{'...' if len(product['product']) > 35 else ''}</div>
+                        <div style="color: #718096; font-size: 14px;">${product['revenue']:,.0f} ({product['quantity_sold']} sold)</div>
+                    </div>
+                """
+        else:
+            section += '<div style="color: #718096;">No sales data yet</div>'
+        
+        section += """
+            </div>
+        </div>
+        """
+        
+        return section
     
     def send_weekly_report(self, recipient_email, recipient_name, analytics_data, insights, questions, pdf_attachment=None):
         try:

@@ -62,6 +62,9 @@ class ConversationalInsights:
         NOT the online sales. Compare each store's performance to their same period last year.
         Boston just opened in July 2024, so there may not be prior year data for Boston.
         
+        Pay special attention to the top selling items at each location (product_performance_by_location).
+        What's selling well in Charleston vs Boston? Are there differences in customer preferences?
+        
         {context}
         
         Please provide:
