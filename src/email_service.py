@@ -133,11 +133,35 @@ class ConversationalEmailService:
         # Check if Sophie provided a complete email
         insights_text = insights if isinstance(insights, str) else insights.get('insights_text', '')
         
+        print(f"Email service received insights_text starting with: {insights_text[:50]}...")
+        print(f"Insights type: {type(insights)}")
+        
+        # If insights contain JSON, try to extract the email
+        if insights_text and insights_text.strip().startswith('{'):
+            print("Insights contain JSON, attempting to extract email")
+            try:
+                # Parse the JSON
+                import json
+                parsed = json.loads(insights_text)
+                if 'full_email' in parsed:
+                    print("Extracted full_email from JSON")
+                    return parsed['full_email']
+            except Exception as e:
+                print(f"Failed to parse JSON from insights: {e}")
+                # Try regex extraction as fallback
+                import re
+                match = re.search(r'"full_email"\s*:\s*"([^"]+(?:\\.[^"]+)*)"', insights_text, re.DOTALL)
+                if match:
+                    email_text = match.group(1).replace('\\n', '\n').replace('\\"', '"').replace('\\\\', '\\')
+                    print("Extracted email using regex")
+                    return email_text
+        
         # If the insights already contain a complete email (starts with a greeting), use it as-is
         if insights_text and any(insights_text.lower().startswith(greeting) for greeting in ['hi ', 'hey ', 'hello ', 'good morning', 'good afternoon', 'morning', 'hope']):
-            # Make sure it's not JSON
-            if not insights_text.strip().startswith('{'):
-                return insights_text
+            print("Using Sophie's complete email")
+            return insights_text
+        else:
+            print("No greeting found, using fallback template")
         
         # Otherwise, use the fallback template (this should rarely happen with the new prompt)
         goals_text = ""

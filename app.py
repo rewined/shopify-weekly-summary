@@ -425,6 +425,29 @@ def test_email_generation():
             'traceback': traceback.format_exc()
         }), 500
 
+@app.route('/test-json-email')
+def test_json_email():
+    """Test JSON email extraction"""
+    test_json = '''
+    {
+      "full_email": "Hey Adam,\\n\\nHow's it going? I've been digging into this week's numbers and wanted to share some quick thoughts.\\n\\nBest,\\nSophie",
+      "questions": ["Question 1", "Question 2"]
+    }
+    '''
+    
+    # Test the email service
+    if not email_service:
+        init_services()
+    
+    result = email_service.create_weekly_email_text(
+        'Adam',
+        {'total_revenue': 1000, 'total_orders': 10, 'avg_order_value': 100},
+        test_json.strip(),
+        []
+    )
+    
+    return f"<pre>Input JSON:\n{test_json}\n\nExtracted Email:\n{result}</pre>"
+
 if __name__ == '__main__':
     # Initialize services
     init_services()
