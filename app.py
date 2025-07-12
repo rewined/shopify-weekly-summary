@@ -193,6 +193,83 @@ def test_shopify():
             'shop_domain': shopify_service.shop_domain if shopify_service else 'Not initialized'
         }), 500
 
+@app.route('/analyze-locations')
+def analyze_locations():
+    """Analyze Shopify locations to identify Charleston and Boston"""
+    if not shopify_service:
+        init_services()
+    
+    try:
+        # Get orders from different time periods
+        # Pre-Boston (before July 2024)
+        pre_boston_end = datetime(2024, 6, 30)
+        pre_boston_start = datetime(2024, 6, 1)
+        
+        # Post-Boston (after July 2024)
+        post_boston_start = datetime(2024, 8, 1)
+        post_boston_end = datetime(2024, 8, 31)
+        
+        # Recent
+        recent_end = datetime.now()
+        recent_start = recent_end - timedelta(days=7)
+        
+        print("Fetching orders from different periods...")
+        pre_boston_orders = shopify_service.get_orders_for_period(pre_boston_start, pre_boston_end)
+        post_boston_orders = shopify_service.get_orders_for_period(post_boston_start, post_boston_end)
+        recent_orders = shopify_service.get_orders_for_period(recent_start, recent_end)
+        
+        # Analyze location patterns
+        def analyze_period_locations(orders, period_name):
+            from collections import defaultdict
+            location_stats = defaultdict(lambda: {'count': 0, 'pos_count': 0, 'revenue': 0})
+            
+            for order in orders:
+                location_id = str(order.get('location_id', 'none'))
+                source = order.get('source_name', '')
+                
+                location_stats[location_id]['count'] += 1
+                location_stats[location_id]['revenue'] += order.get('total_price', 0)
+                
+                if source.lower() == 'pos':
+                    location_stats[location_id]['pos_count'] += 1
+            
+            return {
+                'period': period_name,
+                'locations': dict(location_stats)
+            }
+        
+        # Try to get location details
+        location_details = []
+        try:
+            import shopify
+            locations = shopify.Location.find()
+            for loc in locations:
+                location_details.append({
+                    'id': str(loc.id),
+                    'name': loc.name,
+                    'city': getattr(loc, 'city', 'N/A'),
+                    'province': getattr(loc, 'province', 'N/A'),
+                    'active': getattr(loc, 'active', True)
+                })
+        except Exception as e:
+            print(f"Could not fetch location details: {e}")
+        
+        return jsonify({
+            'success': True,
+            'location_details': location_details,
+            'analysis': {
+                'pre_boston': analyze_period_locations(pre_boston_orders, 'Pre-Boston (June 2024)'),
+                'post_boston': analyze_period_locations(post_boston_orders, 'Post-Boston (Aug 2024)'),
+                'recent': analyze_period_locations(recent_orders, 'Recent (Last 7 days)')
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 if __name__ == '__main__':
     # Initialize services
     init_services()
