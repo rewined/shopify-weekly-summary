@@ -134,8 +134,10 @@ class ConversationalEmailService:
         insights_text = insights if isinstance(insights, str) else insights.get('insights_text', '')
         
         # If the insights already contain a complete email (starts with a greeting), use it as-is
-        if insights_text and any(insights_text.lower().startswith(greeting) for greeting in ['hi ', 'hey ', 'hello ', 'good morning', 'good afternoon', 'morning']):
-            return insights_text
+        if insights_text and any(insights_text.lower().startswith(greeting) for greeting in ['hi ', 'hey ', 'hello ', 'good morning', 'good afternoon', 'morning', 'hope']):
+            # Make sure it's not JSON
+            if not insights_text.strip().startswith('{'):
+                return insights_text
         
         # Otherwise, use the fallback template (this should rarely happen with the new prompt)
         goals_text = ""

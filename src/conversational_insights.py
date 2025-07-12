@@ -132,15 +132,42 @@ class ConversationalInsights:
             except json.JSONDecodeError as e:
                 print(f"JSON decode error: {e}")
                 print(f"Content was: {content[:200]}...")
-                # Fallback if not valid JSON
-                result = {
-                    "insights_text": content,
-                    "questions": [
-                        "What's been the customer response to your recent changes?",
-                        "Are there any special events or promotions you're planning?",
-                        "What product categories would you like me to track more closely?"
-                    ]
-                }
+                
+                # Try to extract the email from the content if it has JSON structure
+                if '"full_email"' in content:
+                    try:
+                        # Find the JSON object in the content
+                        start = content.find('{')
+                        end = content.rfind('}') + 1
+                        if start >= 0 and end > start:
+                            json_str = content[start:end]
+                            parsed = json.loads(json_str)
+                            if 'full_email' in parsed:
+                                result = {
+                                    "insights_text": parsed['full_email'],
+                                    "questions": parsed.get('questions', [])
+                                }
+                            else:
+                                raise ValueError("No full_email in parsed JSON")
+                        else:
+                            raise ValueError("No JSON object found")
+                    except Exception as parse_error:
+                        print(f"Failed to extract JSON from content: {parse_error}")
+                        # Final fallback - just use the content as is
+                        result = {
+                            "insights_text": content,
+                            "questions": []
+                        }
+                else:
+                    # Fallback if not valid JSON and no full_email found
+                    result = {
+                        "insights_text": content,
+                        "questions": [
+                            "What's been the customer response to your recent changes?",
+                            "Are there any special events or promotions you're planning?",
+                            "What product categories would you like me to track more closely?"
+                        ]
+                    }
             
             # Save this conversation
             self.conversation_history.append({

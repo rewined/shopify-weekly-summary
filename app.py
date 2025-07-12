@@ -115,12 +115,16 @@ def generate_report():
         pdf_path = None
         
         print("Sending email...")
+        print(f"Conversational report keys: {conversational_report.keys()}")
+        insights_content = conversational_report.get('insights_text', conversational_report.get('full_email', ''))
+        print(f"Insights content preview: {insights_content[:100]}...")
+        
         # Send email
         email_service.send_weekly_report(
             recipient_email=recipient_email,
             recipient_name=recipient_name,
             analytics_data=weekly_data,
-            insights=conversational_report.get('insights_text', conversational_report.get('full_email', '')),
+            insights=insights_content,
             questions=conversational_report.get('questions', []),
             pdf_attachment=pdf_path
         )
