@@ -34,16 +34,16 @@ class ShopifyService:
             
             print(f"Fetching orders from {start_str} to {end_str}")
             
-            # Fetch orders with pagination
-            page = 1
+            # Fetch orders with cursor-based pagination
+            params = {
+                'created_at_min': start_str,
+                'created_at_max': end_str,
+                'status': 'any',
+                'limit': 250
+            }
+            
             while True:
-                batch = shopify.Order.find(
-                    created_at_min=start_str,
-                    created_at_max=end_str,
-                    status='any',
-                    limit=250,
-                    page=page
-                )
+                batch = shopify.Order.find(**params)
                 
                 if not batch:
                     break
@@ -75,10 +75,15 @@ class ShopifyService:
                     
                     orders.append(order_data)
                 
-                page += 1
-                
-                # Respect rate limits
-                if len(batch) < 250:
+                # Check for pagination info
+                if hasattr(batch, 'has_next_page') and batch.has_next_page():
+                    # Get the next page cursor
+                    params['page_info'] = batch.next_page_info
+                    # Remove date filters for subsequent requests when using page_info
+                    params.pop('created_at_min', None)
+                    params.pop('created_at_max', None)
+                    params.pop('status', None)
+                else:
                     break
             
             print(f"Total orders fetched: {len(orders)}")
@@ -91,10 +96,10 @@ class ShopifyService:
     def get_products(self) -> List[Dict]:
         try:
             products = []
-            page = 1
+            params = {'limit': 250}
             
             while True:
-                batch = shopify.Product.find(limit=250, page=page)
+                batch = shopify.Product.find(**params)
                 
                 if not batch:
                     break
@@ -120,9 +125,10 @@ class ShopifyService:
                     
                     products.append(product_data)
                 
-                page += 1
-                
-                if len(batch) < 250:
+                # Check for pagination info
+                if hasattr(batch, 'has_next_page') and batch.has_next_page():
+                    params['page_info'] = batch.next_page_info
+                else:
                     break
             
             return products
