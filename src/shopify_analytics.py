@@ -212,7 +212,8 @@ class ShopifyAnalytics:
                 'total_workshops': 0,
                 'workshop_revenue': 0,
                 'attendees': 0,
-                'popular_workshops': []
+                'popular_workshops': [],
+                'occupancy_data': {}
             }
         
         workshop_types = defaultdict(lambda: {'count': 0, 'revenue': 0, 'attendees': 0})
@@ -237,11 +238,25 @@ class ShopifyAnalytics:
         total_revenue = sum(data['revenue'] for data in workshop_types.values())
         total_attendees = sum(data['attendees'] for data in workshop_types.values())
         
+        # Calculate occupancy (placeholder - would ideally fetch from Google Sheets)
+        # Assuming standard workshop capacity of 12 people
+        standard_capacity = 12
+        total_sessions = sum(data['count'] for data in workshop_types.values())
+        total_capacity = total_sessions * standard_capacity if total_sessions > 0 else 0
+        occupancy_rate = (total_attendees / total_capacity * 100) if total_capacity > 0 else 0
+        
         return {
             'total_workshops': len(workshop_orders),
             'workshop_revenue': total_revenue,
             'attendees': total_attendees,
-            'popular_workshops': popular_workshops
+            'popular_workshops': popular_workshops,
+            'occupancy_data': {
+                'total_sessions': total_sessions,
+                'total_attendees': total_attendees,
+                'total_capacity': total_capacity,
+                'occupancy_rate': round(occupancy_rate, 1),
+                'note': 'Workshop capacity data should be referenced from Google Sheets'
+            }
         }
     
     def _analyze_customers(self, orders: List[Dict]) -> Dict[str, Any]:
@@ -355,6 +370,7 @@ class ShopifyAnalytics:
                 'traffic_goal': 800 * seasonal_factor,    # Weekly visitors
                 'conversion_goal': 0.35,                   # 35% conversion rate
                 'avg_ticket_goal': 89,                     # Average order value
+                'workshop_occupancy_goal': 0.75,           # 75% workshop occupancy target
                 'notes': 'Goals from 2024 planning spreadsheet'
             },
             'boston': {
@@ -362,6 +378,7 @@ class ShopifyAnalytics:
                 'traffic_goal': 500 * seasonal_factor,    # Building traffic
                 'conversion_goal': 0.30,                   # 30% conversion for new store
                 'avg_ticket_goal': 100,                    # Higher AOV in Boston market
+                'workshop_occupancy_goal': 0.60,           # 60% workshop occupancy for new store
                 'notes': 'New store ramp-up targets'
             }
         }

@@ -153,6 +153,20 @@ class ConversationalEmailService:
                 revenue_pct = boston_metrics.get('revenue_vs_goal_pct', 0)
                 avg_ticket = boston_current.get('avg_order_value', 0)
                 goals_text += f"Boston hit {revenue_pct:.0f}% of target with ${avg_ticket:.0f} average tickets\n"
+            
+            # Add workshop occupancy if available
+            workshop_data = analytics_data.get('workshop_analytics', {})
+            occupancy_data = workshop_data.get('occupancy_data', {})
+            if occupancy_data.get('occupancy_rate', 0) > 0:
+                occupancy_rate = occupancy_data.get('occupancy_rate', 0)
+                goals_text += f"\nWorkshop occupancy was {occupancy_rate}% this week"
+                if occupancy_rate >= 75:
+                    goals_text += " (great!)"
+                elif occupancy_rate >= 60:
+                    goals_text += " (solid)"
+                else:
+                    goals_text += " (room to grow)"
+                goals_text += "\n"
         
         # Format top products text
         products_text = ""

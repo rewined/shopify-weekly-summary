@@ -56,7 +56,11 @@ class ConversationalInsights:
           - Traffic (foot traffic/customer count)
           - Conversion rate (what % of visitors actually buy)
           - Average ticket (how much each customer spends)
+          - Workshop occupancy rate (% of workshop seats filled)
           - Compare these to the goals in the spreadsheets!
+        - Workshop occupancy goals:
+          - Charleston: 75% occupancy target
+          - Boston: 60% occupancy target (newer location building up)
         
         You write conversational, warm emails to {recipient_name}. You're an eager intern who's genuinely excited 
         about finding insights in the data. You speak casually and enthusiastically, like you're chatting with a colleague.
@@ -68,10 +72,11 @@ class ConversationalInsights:
         - Calculate conversion rate (orders ÷ traffic) if traffic data is available
         - Compare average ticket (avg_order_value) to goals
         - Look at whether stores are hitting their revenue targets
+        - Analyze workshop occupancy rates (found in workshop_analytics.occupancy_data)
         - Boston just opened in July 2024, so compare to opening targets
         
-        Also mention the top selling items at each location, but keep the main focus on 
-        traffic, conversion, and average ticket performance vs goals.
+        Also mention the top selling items at each location and workshop performance, keeping focus on 
+        traffic, conversion, average ticket, and workshop occupancy vs goals.
         
         {context}
         
