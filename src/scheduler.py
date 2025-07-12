@@ -42,6 +42,9 @@ class ShopifyScheduler:
         # Schedule reply processing every hour
         self._schedule_reply_processing()
         
+        # Schedule daily Google Sheets refresh
+        self._schedule_daily_sheets_refresh()
+        
         logger.info("Shopify scheduler initialized")
     
     def _schedule_weekly_report(self):
@@ -81,11 +84,57 @@ class ShopifyScheduler:
         
         logger.info("Email reply processing scheduled every hour")
     
+    def _schedule_daily_sheets_refresh(self):
+        """Schedule daily Google Sheets data refresh"""
+        # Refresh at 3 AM daily
+        hour = int(os.getenv('SHEETS_REFRESH_HOUR', '3'))
+        timezone = os.getenv('SCHEDULER_TIMEZONE', 'America/New_York')
+        
+        trigger = CronTrigger(
+            hour=hour,
+            minute=0,
+            timezone=pytz.timezone(timezone)
+        )
+        
+        self.scheduler.add_job(
+            func=self.refresh_google_sheets,
+            trigger=trigger,
+            id='daily_sheets_refresh',
+            replace_existing=True
+        )
+        
+        logger.info(f"Google Sheets refresh scheduled daily at {hour}:00 {timezone}")
+    
+    def refresh_google_sheets(self):
+        """Refresh Google Sheets data"""
+        logger.info("Running scheduled Google Sheets refresh")
+        try:
+            from .auto_refresh_sheets import AutoRefreshSheets
+            refresher = AutoRefreshSheets()
+            success = refresher.refresh_and_save()
+            if success:
+                logger.info("✅ Scheduled Google Sheets refresh completed successfully")
+            else:
+                logger.error("❌ Scheduled Google Sheets refresh failed")
+        except Exception as e:
+            logger.error(f"Error in scheduled sheets refresh: {e}")
+    
     def generate_and_send_weekly_reports(self):
         """Generate and send weekly reports to all active recipients"""
         logger.info("Starting weekly report generation")
         
         try:
+            # First, refresh Google Sheets data automatically
+            try:
+                from .auto_refresh_sheets import AutoRefreshSheets
+                logger.info("Refreshing Google Sheets data before generating reports...")
+                refresher = AutoRefreshSheets()
+                refresher.refresh_and_save()
+                logger.info("Google Sheets data refreshed successfully")
+            except Exception as e:
+                logger.warning(f"Could not refresh Google Sheets data: {e}")
+                logger.info("Continuing with existing data...")
+            
             # Initialize services
             shopify = ShopifyService()
             analytics = ShopifyAnalytics(shopify)
@@ -141,6 +190,21 @@ class ShopifyScheduler:
                             questions=ai_insights.get('questions', []),
                             pdf_path=pdf_path
                         )
+                        
+                        # Save enhanced memory
+                        try:
+                            from .memory_service import MemoryService
+                            memory = MemoryService()
+                            memory.save_enhanced_conversation(
+                                recipient_email=recipient_email,
+                                email_content=ai_insights.get('insights_text', ''),
+                                analytics_data=analytics_data,
+                                questions=ai_insights.get('questions', []),
+                                topics=self._extract_topics_from_analytics(analytics_data)
+                            )
+                        except Exception as e:
+                            logger.warning(f"Could not save enhanced memory: {e}")
+                        
                         logger.info(f"Weekly report sent successfully to {recipient_email}")
                     else:
                         logger.error(f"Failed to send report to {recipient_email}")
@@ -169,6 +233,11 @@ class ShopifyScheduler:
             
             if replies:
                 logger.info(f"Processed {len(replies)} email replies")
+                
+                # Count how many responses were sent
+                responses_sent = sum(1 for reply in replies if reply.get('response_sent', False))
+                if responses_sent > 0:
+                    logger.info(f"Sophie sent {responses_sent} automated responses")
                 
                 # Update preferences based on feedback
                 for reply in replies:
@@ -246,6 +315,36 @@ class ShopifyScheduler:
                 'success': False,
                 'error': str(e)
             }
+    
+    def _extract_topics_from_analytics(self, analytics_data: Dict) -> List[str]:
+        """Extract key topics from analytics data"""
+        topics = []
+        
+        # Revenue performance
+        yoy = analytics_data.get('yoy_changes', {})
+        if yoy.get('total_revenue_change', 0) > 20:
+            topics.append("strong revenue growth")
+        elif yoy.get('total_revenue_change', 0) < -10:
+            topics.append("revenue challenges")
+            
+        # Store performance
+        charleston = analytics_data.get('current_week_by_location', {}).get('charleston', {})
+        boston = analytics_data.get('current_week_by_location', {}).get('boston', {})
+        
+        if charleston.get('total_revenue', 0) > boston.get('total_revenue', 0) * 3:
+            topics.append("charleston outperformance")
+        
+        # Products
+        products = analytics_data.get('product_performance', [])
+        if products:
+            topics.append(f"top: {products[0]['product']}")
+            
+        # Workshops
+        workshops = analytics_data.get('workshop_analytics', {})
+        if workshops.get('attendees', 0) > 50:
+            topics.append("strong workshop attendance")
+            
+        return topics
     
     def shutdown(self):
         """Shutdown the scheduler"""

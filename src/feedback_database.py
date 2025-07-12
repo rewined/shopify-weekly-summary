@@ -247,9 +247,16 @@ class FeedbackDatabase:
         
         # If no preferences set, get from environment
         if not recipients:
-            env_recipients = os.getenv('EMAIL_RECIPIENTS', '')
+            env_recipients = os.getenv('DEFAULT_RECIPIENTS', os.getenv('EMAIL_RECIPIENTS', 'adam@rewined.com'))
             if env_recipients:
-                recipients = [email.strip() for email in env_recipients.split(',')]
+                recipients = [email.strip() for email in env_recipients.split(',') if email.strip()]
+                
+                # Add them to the database for next time
+                for email in recipients:
+                    self.save_recipient_preferences(email, {
+                        'name': email.split('@')[0].title(),
+                        'active': True
+                    })
         
         conn.close()
         return recipients

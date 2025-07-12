@@ -9,12 +9,14 @@ from email.header import decode_header
 from email_reply_parser import EmailReplyParser
 from .feedback_database import FeedbackDatabase
 from .conversational_insights import ConversationalInsights
+from .email_responder import EmailResponder
 
 
 class ReplyProcessor:
     def __init__(self):
         self.db = FeedbackDatabase()
         self.insights = ConversationalInsights()
+        self.responder = EmailResponder()
         
         # IMAP configuration
         self.imap_server = os.getenv('IMAP_SERVER', 'imap.gmail.com')
@@ -99,6 +101,31 @@ class ReplyProcessor:
         # Mark as processed with context
         self.db.mark_feedback_processed(feedback_id, context)
         
+        # NEW: Generate and send Sophie's response
+        try:
+            response_sent = self.responder.process_and_respond(
+                sender_email=sender,
+                sender_name=sender_name,
+                original_message=reply_text,
+                subject=subject
+            )
+            
+            if response_sent:
+                print(f"Sophie's response sent successfully to {sender}")
+                # Log the response in the database
+                self.db.add_feedback(
+                    email=sender,
+                    content=f"[Sophie's automated response sent at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}]",
+                    subject=f"Re: {subject}",
+                    name="Sophie Blake",
+                    report_date=report_date
+                )
+            else:
+                print(f"Failed to send Sophie's response to {sender}")
+                
+        except Exception as e:
+            print(f"Error generating/sending Sophie's response: {str(e)}")
+        
         return {
             'id': feedback_id,
             'sender': sender,
@@ -106,7 +133,8 @@ class ReplyProcessor:
             'subject': subject,
             'content': reply_text,
             'context': context,
-            'received_at': date_received
+            'received_at': date_received,
+            'response_sent': response_sent if 'response_sent' in locals() else False
         }
     
     def _extract_email_address(self, from_header: str) -> str:

@@ -34,14 +34,49 @@ class ConversationalInsights:
     def generate_insights(self, analytics_data: Dict, recipient_name: str, feedback_context: Dict = None) -> Dict[str, Any]:
         """Generate conversational insights using Claude"""
         
-        # Build context from past conversations
+        # Build enhanced context from memory service
         context = ""
-        if feedback_context:
-            context = f"\nPast feedback from {recipient_name}: {json.dumps(feedback_context, indent=2)}"
+        memory_context = {}
         
-        if self.conversation_history:
-            recent = self.conversation_history[-3:]
-            context += f"\n\nRecent conversation topics: {json.dumps(recent, indent=2)}"
+        try:
+            from .memory_service import MemoryService
+            memory = MemoryService()
+            memory_context = memory.get_conversation_context(
+                analytics_data.get('recipient_email', f'{recipient_name.lower()}@candlefish.com')
+            )
+            
+            # Build rich context for Sophie
+            if memory_context['past_emails']:
+                context += f"\n\nPAST CONVERSATIONS WITH {recipient_name.upper()}:"
+                for email in memory_context['past_emails'][:3]:
+                    context += f"\n- Week of {email['week_of']}: {', '.join(email['key_points'][:2])}"
+                    if email['questions']:
+                        context += f"\n  Asked: {email['questions'][0]}"
+            
+            if memory_context['replies_received']:
+                context += f"\n\nRECENT REPLIES FROM {recipient_name.upper()}:"
+                for reply in memory_context['replies_received'][:2]:
+                    context += f"\n- {reply['content']}"
+            
+            if memory_context['topics_discussed']:
+                context += f"\n\nTOPICS {recipient_name.upper()} CARES ABOUT: {', '.join(memory_context['topics_discussed'])}"
+            
+            # Get performance trends
+            trends = memory.get_performance_trends(analytics_data.get('recipient_email', f'{recipient_name.lower()}@candlefish.com'))
+            if trends['revenue_trend'] and len(trends['revenue_trend']) > 1:
+                context += f"\n\nPERFORMANCE TREND:"
+                context += f"\n- Last week: ${trends['revenue_trend'][-2]['total']:,.0f}"
+                context += f"\n- This week: ${trends['revenue_trend'][-1]['total']:,.0f}"
+                
+        except Exception as e:
+            print(f"Could not load enhanced memory context: {e}")
+            # Fall back to basic context
+            if feedback_context:
+                context = f"\nPast feedback from {recipient_name}: {json.dumps(feedback_context, indent=2)}"
+            
+            if self.conversation_history:
+                recent = self.conversation_history[-3:]
+                context += f"\n\nRecent conversation topics: {json.dumps(recent, indent=2)}"
         
         # Do web search for local events that might affect sales
         event_context = ""
@@ -78,7 +113,9 @@ class ConversationalInsights:
         - Products at Candlefish stores: Candle Library (cf##### SKUs), Match Bar, Workshops, Gift items, some Rewined candles
         - You regularly check the monthly sales data in the Google Sheets
         - Boston store only started selling around August 1, 2024 - be skeptical of huge YoY growth numbers
-        - Goals tracked in Google Sheets with targets for traffic, conversion, average ticket
+        - Goals are pulled from Google Sheets monthly forecasts and converted to weekly targets
+        - Charleston monthly forecast sheet: 1pbfEpXk-yerQnjaMkML-dVkqcO-fnvu15M3GKcwMqEI
+        - Boston monthly forecast sheet: 1k7bH5KRDtogwpxnUAktbfwxeAr-FjMg_rOkK__U878k
         - Workshop occupancy targets: Charleston 75%, Boston 60%
         
         THIS WEEK'S DATA:
@@ -97,6 +134,13 @@ class ConversationalInsights:
         - Vary your sign-offs (Best, Thanks, Talk soon, etc.)
         - Write like you're actually typing an email - natural pauses, real enthusiasm, genuine questions
         - AVOID making specific weather references unless you have actual weather data
+        
+        MEMORY & CONTINUITY:
+        - Reference past conversations naturally (e.g., "Last week you asked about..." or "Following up on...")
+        - If performance changed significantly from last week, mention it
+        - If they gave feedback or asked questions, acknowledge and respond
+        - Build on previous topics - don't treat each email as the first one
+        - Show you remember what matters to them
         
         Include:
         - How the stores performed vs goals (but work it in naturally)
@@ -194,15 +238,18 @@ class ConversationalInsights:
                     goals = analytics_data.get('goals', {})
                     conversion_metrics = analytics_data.get('conversion_metrics', {})
                     if goals and conversion_metrics:
-                        print(f"\nGOALS DATA (HARDCODED PLACEHOLDERS - NOT from spreadsheets):")
+                        print(f"\nGOALS DATA (from Google Sheets service):")
                         charleston_goals = goals.get('charleston', {})
                         boston_goals = goals.get('boston', {})
                         charleston_metrics = conversion_metrics.get('charleston', {})
                         boston_metrics = conversion_metrics.get('boston', {})
                         
-                        print(f"  Charleston: {charleston_metrics.get('revenue_vs_goal_pct', 'N/A')}% of ${charleston_goals.get('revenue_goal', 'N/A')} goal (hardcoded)")
-                        print(f"  Boston: {boston_metrics.get('revenue_vs_goal_pct', 'N/A')}% of ${boston_goals.get('revenue_goal', 'N/A')} goal (hardcoded)")
-                        print(f"  NOTE: Goals are hardcoded in _get_store_goals() method, not from spreadsheets")
+                        print(f"  Charleston: {charleston_metrics.get('revenue_vs_goal_pct', 'N/A')}% of ${charleston_goals.get('revenue_goal', 'N/A'):.0f} weekly goal")
+                        print(f"    Monthly target: ${charleston_goals.get('monthly_revenue_goal', 'N/A'):.0f} ({charleston_goals.get('source_month', 'N/A')})")
+                        print(f"  Boston: {boston_metrics.get('revenue_vs_goal_pct', 'N/A')}% of ${boston_goals.get('revenue_goal', 'N/A'):.0f} weekly goal") 
+                        print(f"    Monthly target: ${boston_goals.get('monthly_revenue_goal', 'N/A'):.0f} ({boston_goals.get('source_month', 'N/A')})")
+                        print(f"  Source: {goals.get('source', 'Unknown')}")
+                        print(f"  NOTE: Weekly goals calculated from monthly forecast data")
                     
                     # Show product performance
                     products = analytics_data.get('product_performance', [])

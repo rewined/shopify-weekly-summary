@@ -476,7 +476,49 @@ def test_google_sheets():
             'traceback': traceback.format_exc()
         }), 500
 
+@app.route('/api/test-email-response', methods=['POST'])
+def test_email_response():
+    """Test Sophie's email response generation"""
+    try:
+        from src.email_responder import EmailResponder
+        
+        # Get test data from request
+        data = request.get_json()
+        sender_email = data.get('sender_email', 'adam@candlefish.com')
+        sender_name = data.get('sender_name', 'Adam')
+        message = data.get('message', 'How are we doing this week?')
+        subject = data.get('subject', 'Re: Weekly Report')
+        
+        # Generate response
+        responder = EmailResponder()
+        response = responder.generate_response(
+            sender_email=sender_email,
+            sender_name=sender_name,
+            original_message=message,
+            subject=subject
+        )
+        
+        return jsonify({
+            'success': True,
+            'response': response,
+            'note': 'This is a test response - not actually sent'
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
 if __name__ == '__main__':
+    # Run automatic setup
+    try:
+        from src.auto_setup import setup_automatic_operations
+        setup_automatic_operations()
+    except Exception as e:
+        print(f"Warning: Could not run automatic setup: {e}")
+    
     # Initialize services
     init_services()
     

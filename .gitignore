@@ -11,6 +11,26 @@ ENV/
 # Environment variables
 .env
 .env.local
+.env.railway
+
+# Google OAuth credentials and tokens
+credentials.json
+token.json
+client_secret_*.json
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Sheets data cache
+src/sheets_data.py
+src/sheets_data.js
+
+# Test files  
+test_*.py
+debug_*.js
 
 # Database
 data/
