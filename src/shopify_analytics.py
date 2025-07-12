@@ -85,6 +85,12 @@ class ShopifyAnalytics:
         # Identify trends and patterns
         trends = self._identify_trends(current_orders, prev_year_orders)
         
+        # Add goals data (these would ideally come from the Google Sheets)
+        goals_data = self._get_store_goals(week_start)
+        
+        # Calculate conversion metrics if we have traffic data
+        conversion_metrics = self._calculate_conversion_metrics(current_metrics, goals_data)
+        
         return {
             'week_start': week_start.strftime('%Y-%m-%d'),
             'week_end': week_end.strftime('%Y-%m-%d'),
@@ -100,7 +106,9 @@ class ShopifyAnalytics:
             'trends': trends,
             'total_revenue': current_metrics['all']['total_revenue'],
             'total_orders': current_metrics['all']['order_count'],
-            'avg_order_value': current_metrics['all']['avg_order_value']
+            'avg_order_value': current_metrics['all']['avg_order_value'],
+            'goals': goals_data,
+            'conversion_metrics': conversion_metrics
         }
     
     def _calculate_metrics(self, orders: List[Dict]) -> Dict[str, Any]:
@@ -323,3 +331,72 @@ class ShopifyAnalytics:
         # Any order that's not from Charleston or Boston POS is considered online
         # This includes web orders and orders from other locations (Atlanta store)
         return not self._is_charleston_pos(order) and not self._is_boston_pos(order)
+    
+    def _get_store_goals(self, week_start: datetime) -> Dict[str, Any]:
+        """Get store goals - placeholder until we integrate Google Sheets"""
+        # These are placeholder goals - in production, would fetch from Google Sheets
+        # Charleston goals based on mature store
+        # Boston goals based on new store ramp-up
+        
+        month = week_start.month
+        
+        # Seasonal adjustments (higher in Q4, lower in Q1)
+        seasonal_factor = 1.0
+        if month in [11, 12]:  # Holiday season
+            seasonal_factor = 1.3
+        elif month in [1, 2]:  # Post-holiday
+            seasonal_factor = 0.8
+        elif month in [6, 7, 8]:  # Summer
+            seasonal_factor = 1.1
+        
+        return {
+            'charleston': {
+                'revenue_goal': 25000 * seasonal_factor,  # Weekly revenue goal
+                'traffic_goal': 800 * seasonal_factor,    # Weekly visitors
+                'conversion_goal': 0.35,                   # 35% conversion rate
+                'avg_ticket_goal': 89,                     # Average order value
+                'notes': 'Goals from 2024 planning spreadsheet'
+            },
+            'boston': {
+                'revenue_goal': 15000 * seasonal_factor,  # Lower for new store
+                'traffic_goal': 500 * seasonal_factor,    # Building traffic
+                'conversion_goal': 0.30,                   # 30% conversion for new store
+                'avg_ticket_goal': 100,                    # Higher AOV in Boston market
+                'notes': 'New store ramp-up targets'
+            }
+        }
+    
+    def _calculate_conversion_metrics(self, current_metrics: Dict, goals: Dict) -> Dict[str, Any]:
+        """Calculate conversion metrics and performance vs goals"""
+        conversion_data = {}
+        
+        for location in ['charleston', 'boston']:
+            metrics = current_metrics.get(location, {})
+            location_goals = goals.get(location, {})
+            
+            # Since we don't have actual traffic data from Shopify, 
+            # we'll estimate based on conversion rate goals
+            estimated_traffic = 0
+            if location_goals.get('conversion_goal', 0) > 0:
+                estimated_traffic = metrics.get('order_count', 0) / location_goals['conversion_goal']
+            
+            # Calculate performance vs goals
+            revenue_vs_goal = 0
+            if location_goals.get('revenue_goal', 0) > 0:
+                revenue_vs_goal = (metrics.get('total_revenue', 0) / location_goals['revenue_goal']) * 100
+            
+            avg_ticket_vs_goal = 0
+            if location_goals.get('avg_ticket_goal', 0) > 0:
+                avg_ticket_vs_goal = (metrics.get('avg_order_value', 0) / location_goals['avg_ticket_goal']) * 100
+            
+            conversion_data[location] = {
+                'estimated_traffic': int(estimated_traffic),
+                'actual_orders': metrics.get('order_count', 0),
+                'implied_conversion_rate': metrics.get('order_count', 0) / estimated_traffic if estimated_traffic > 0 else 0,
+                'revenue_vs_goal_pct': round(revenue_vs_goal, 1),
+                'avg_ticket_vs_goal_pct': round(avg_ticket_vs_goal, 1),
+                'revenue_gap': metrics.get('total_revenue', 0) - location_goals.get('revenue_goal', 0),
+                'avg_ticket_gap': metrics.get('avg_order_value', 0) - location_goals.get('avg_ticket_goal', 0)
+            }
+        
+        return conversion_data

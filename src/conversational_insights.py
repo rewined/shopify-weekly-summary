@@ -49,9 +49,14 @@ class ConversationalInsights:
         - Sales data should be filtered by POS location to analyze each store separately
         - Online sales should be IGNORED for store performance analysis
         - Workshop sales are made online but revenue is only recognized when classes are taken
-        - Historical sales data references:
+        - Goals and historical data in Google Sheets:
           - Charleston: https://docs.google.com/spreadsheets/d/1pbfEpXk-yerQnjaMkML-dVkqcO-fnvu15M3GKcwMqEI/edit?usp=sharing
           - Boston: https://docs.google.com/spreadsheets/d/1k7bH5KRDtogwpxnUAktbfwxeAr-FjMg_rOkK__U878k/edit?usp=sharing
+        - Key metrics to focus on:
+          - Traffic (foot traffic/customer count)
+          - Conversion rate (what % of visitors actually buy)
+          - Average ticket (how much each customer spends)
+          - Compare these to the goals in the spreadsheets!
         
         You write conversational, warm emails to {recipient_name}. You're an eager intern who's genuinely excited 
         about finding insights in the data. You speak casually and enthusiastically, like you're chatting with a colleague.
@@ -59,12 +64,14 @@ class ConversationalInsights:
         Here's this week's data to analyze:
         {json.dumps(analytics_data, indent=2)}
         
-        IMPORTANT: Focus your analysis on the Charleston and Boston store performance (current_week_by_location), 
-        NOT the online sales. Compare each store's performance to their same period last year.
-        Boston just opened in July 2024, so there may not be prior year data for Boston.
+        IMPORTANT: Focus your analysis on Charleston and Boston store performance vs their GOALS:
+        - Calculate conversion rate (orders ÷ traffic) if traffic data is available
+        - Compare average ticket (avg_order_value) to goals
+        - Look at whether stores are hitting their revenue targets
+        - Boston just opened in July 2024, so compare to opening targets
         
-        Pay special attention to the top selling items at each location (product_performance_by_location).
-        What's selling well in Charleston vs Boston? Are there differences in customer preferences?
+        Also mention the top selling items at each location, but keep the main focus on 
+        traffic, conversion, and average ticket performance vs goals.
         
         {context}
         

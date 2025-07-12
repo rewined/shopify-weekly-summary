@@ -139,6 +139,8 @@ class ConversationalEmailService:
                 with each one spending about <strong>${analytics_data['avg_order_value']:.2f}</strong> on average.</p>
             </div>
             
+            {self._format_goals_performance(analytics_data)}
+            
             {self._format_top_products_section(analytics_data)}
             
             <h2>💡 What Caught My Eye</h2>
@@ -238,6 +240,73 @@ View Full Dashboard: {os.getenv('APP_URL', 'http://localhost:5000')}/shopify-sum
         
         section += "</div>"
         
+        return section
+    
+    def _format_goals_performance(self, analytics_data):
+        """Format performance vs goals section"""
+        if 'goals' not in analytics_data or 'conversion_metrics' not in analytics_data:
+            return ""
+        
+        goals = analytics_data['goals']
+        metrics = analytics_data['conversion_metrics']
+        
+        section = """
+        <h2>🎯 How We're Doing vs Goals</h2>
+        <div style="font-size: 16px; line-height: 1.6; margin: 20px 0;">
+        """
+        
+        # Charleston performance
+        charleston_metrics = metrics.get('charleston', {})
+        charleston_goals = goals.get('charleston', {})
+        charleston_current = analytics_data['current_week_by_location'].get('charleston', {})
+        
+        if charleston_current.get('order_count', 0) > 0:
+            section += f"""
+            <p><strong style="color: #667eea;">Charleston:</strong> """
+            
+            # Revenue vs goal
+            revenue_pct = charleston_metrics.get('revenue_vs_goal_pct', 0)
+            if revenue_pct >= 100:
+                section += f"Crushed it! Hit <strong>{revenue_pct:.0f}%</strong> of the revenue goal "
+            elif revenue_pct >= 90:
+                section += f"So close! Hit <strong>{revenue_pct:.0f}%</strong> of the revenue goal "
+            else:
+                section += f"Hit <strong>{revenue_pct:.0f}%</strong> of the revenue goal "
+            
+            # Average ticket vs goal
+            avg_ticket_pct = charleston_metrics.get('avg_ticket_vs_goal_pct', 0)
+            avg_ticket_actual = charleston_current.get('avg_order_value', 0)
+            avg_ticket_goal = charleston_goals.get('avg_ticket_goal', 0)
+            
+            if avg_ticket_actual >= avg_ticket_goal:
+                section += f"and average tickets are looking great at <strong>${avg_ticket_actual:.0f}</strong> (goal was ${avg_ticket_goal:.0f})!"
+            else:
+                section += f"but average tickets are a bit low at <strong>${avg_ticket_actual:.0f}</strong> (goal is ${avg_ticket_goal:.0f})."
+            
+            section += "</p>"
+        
+        # Boston performance
+        boston_metrics = metrics.get('boston', {})
+        boston_goals = goals.get('boston', {})
+        boston_current = analytics_data['current_week_by_location'].get('boston', {})
+        
+        if boston_current.get('order_count', 0) > 0:
+            section += f"""
+            <p><strong style="color: #d53f8c;">Boston:</strong> """
+            
+            revenue_pct = boston_metrics.get('revenue_vs_goal_pct', 0)
+            if revenue_pct >= 100:
+                section += f"Killing it for a new store! Hit <strong>{revenue_pct:.0f}%</strong> of target "
+            else:
+                section += f"Building momentum - hit <strong>{revenue_pct:.0f}%</strong> of target "
+            
+            avg_ticket_actual = boston_current.get('avg_order_value', 0)
+            avg_ticket_goal = boston_goals.get('avg_ticket_goal', 0)
+            
+            section += f"with ${avg_ticket_actual:.0f} average tickets."
+            section += "</p>"
+        
+        section += "</div>"
         return section
     
     def send_weekly_report(self, recipient_email, recipient_name, analytics_data, insights, questions, pdf_attachment=None):
