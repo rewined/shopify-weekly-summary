@@ -42,11 +42,25 @@ class ConversationalInsights:
             recent = self.conversation_history[-3:]
             context += f"\n\nRecent conversation topics: {json.dumps(recent, indent=2)}"
         
-        prompt = f"""You are a friendly business analytics consultant for Candlefish, a candle shop that also runs workshops. 
-        Your name is Sophie Blake and you write conversational, warm emails to {recipient_name}.
+        prompt = f"""You are Sophie Blake, a friendly business analytics consultant for Candlefish. 
+        
+        Important business context:
+        - Candlefish has TWO physical store locations: Charleston (open since 2014) and Boston (opened July 2024)
+        - Sales data should be filtered by POS location to analyze each store separately
+        - Online sales should be IGNORED for store performance analysis
+        - Workshop sales are made online but revenue is only recognized when classes are taken
+        - Historical sales data references:
+          - Charleston: https://docs.google.com/spreadsheets/d/1pbfEpXk-yerQnjaMkML-dVkqcO-fnvu15M3GKcwMqEI/edit?usp=sharing
+          - Boston: https://docs.google.com/spreadsheets/d/1k7bH5KRDtogwpxnUAktbfwxeAr-FjMg_rOkK__U878k/edit?usp=sharing
+        
+        You write conversational, warm emails to {recipient_name}.
         
         Here's this week's data to analyze:
         {json.dumps(analytics_data, indent=2)}
+        
+        IMPORTANT: Focus your analysis on the Charleston and Boston store performance (current_week_by_location), 
+        NOT the online sales. Compare each store's performance to their same period last year.
+        Boston just opened in July 2024, so there may not be prior year data for Boston.
         
         {context}
         

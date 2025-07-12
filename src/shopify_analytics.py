@@ -40,9 +40,28 @@ class ShopifyAnalytics:
         prev_year_end = week_end - timedelta(days=365)
         prev_year_orders = self.shopify.get_orders_for_period(prev_year_start, prev_year_end)
         
-        # Process the data
-        current_metrics = self._calculate_metrics(current_orders)
-        prev_year_metrics = self._calculate_metrics(prev_year_orders)
+        # Separate orders by location (POS vs Online)
+        current_charleston = [o for o in current_orders if self._is_charleston_pos(o)]
+        current_boston = [o for o in current_orders if self._is_boston_pos(o)]
+        current_online = [o for o in current_orders if self._is_online_order(o)]
+        
+        prev_charleston = [o for o in prev_year_orders if self._is_charleston_pos(o)]
+        prev_boston = [o for o in prev_year_orders if self._is_boston_pos(o)]
+        prev_online = [o for o in prev_year_orders if self._is_online_order(o)]
+        
+        # Process the data by location
+        current_metrics = {
+            'all': self._calculate_metrics(current_orders),
+            'charleston': self._calculate_metrics(current_charleston),
+            'boston': self._calculate_metrics(current_boston),
+            'online': self._calculate_metrics(current_online)
+        }
+        prev_year_metrics = {
+            'all': self._calculate_metrics(prev_year_orders),
+            'charleston': self._calculate_metrics(prev_charleston),
+            'boston': self._calculate_metrics(prev_boston),
+            'online': self._calculate_metrics(prev_online)
+        }
         
         # Calculate year-over-year changes
         yoy_changes = self._calculate_yoy_changes(current_metrics, prev_year_metrics)
@@ -62,16 +81,18 @@ class ShopifyAnalytics:
         return {
             'week_start': week_start.strftime('%Y-%m-%d'),
             'week_end': week_end.strftime('%Y-%m-%d'),
-            'current_week': current_metrics,
-            'previous_year': prev_year_metrics,
+            'current_week': current_metrics['all'],  # Keep backward compatibility
+            'current_week_by_location': current_metrics,
+            'previous_year': prev_year_metrics['all'],  # Keep backward compatibility
+            'previous_year_by_location': prev_year_metrics,
             'yoy_changes': yoy_changes,
             'product_performance': product_performance,
             'workshop_analytics': workshop_data,
             'customer_insights': customer_insights,
             'trends': trends,
-            'total_revenue': current_metrics['total_revenue'],
-            'total_orders': current_metrics['order_count'],
-            'avg_order_value': current_metrics['avg_order_value']
+            'total_revenue': current_metrics['all']['total_revenue'],
+            'total_orders': current_metrics['all']['order_count'],
+            'avg_order_value': current_metrics['all']['avg_order_value']
         }
     
     def _calculate_metrics(self, orders: List[Dict]) -> Dict[str, Any]:
@@ -120,12 +141,22 @@ class ShopifyAnalytics:
         """Calculate year-over-year percentage changes"""
         changes = {}
         
-        for metric in ['total_revenue', 'order_count', 'avg_order_value', 'total_items_sold']:
-            if previous.get(metric, 0) > 0:
-                change = ((current.get(metric, 0) - previous.get(metric, 0)) / previous.get(metric, 0)) * 100
-                changes[f'{metric}_change'] = round(change, 1)
-            else:
-                changes[f'{metric}_change'] = 100 if current.get(metric, 0) > 0 else 0
+        # Calculate changes for each location
+        for location in ['all', 'charleston', 'boston', 'online']:
+            changes[location] = {}
+            current_loc = current.get(location, {})
+            previous_loc = previous.get(location, {})
+            
+            for metric in ['total_revenue', 'order_count', 'avg_order_value', 'total_items_sold']:
+                if previous_loc.get(metric, 0) > 0:
+                    change = ((current_loc.get(metric, 0) - previous_loc.get(metric, 0)) / previous_loc.get(metric, 0)) * 100
+                    changes[location][f'{metric}_change'] = round(change, 1)
+                else:
+                    changes[location][f'{metric}_change'] = 100 if current_loc.get(metric, 0) > 0 else 0
+        
+        # Keep backward compatibility - return 'all' metrics at root level
+        for metric, value in changes['all'].items():
+            changes[metric] = value
         
         return changes
     
@@ -266,3 +297,39 @@ class ShopifyAnalytics:
                 trends.append(f"{category.capitalize()} are trending with {count} units sold")
         
         return trends
+    
+    def _is_charleston_pos(self, order: Dict) -> bool:
+        """Check if order is from Charleston POS"""
+        # Check tags for location identifiers
+        tags = order.get('tags', [])
+        note = order.get('note', '').lower()
+        
+        # Common indicators for Charleston POS
+        return any([
+            'charleston' in ' '.join(tags).lower(),
+            'chs' in ' '.join(tags).lower(),
+            'pos' in ' '.join(tags).lower() and 'boston' not in ' '.join(tags).lower(),
+            'charleston' in note,
+            # Check if source is POS and not tagged as Boston
+            order.get('source_name', '').lower() == 'pos' and not self._is_boston_pos(order)
+        ])
+    
+    def _is_boston_pos(self, order: Dict) -> bool:
+        """Check if order is from Boston POS"""
+        # Check tags for location identifiers
+        tags = order.get('tags', [])
+        note = order.get('note', '').lower()
+        
+        # Common indicators for Boston POS
+        return any([
+            'boston' in ' '.join(tags).lower(),
+            'bos' in ' '.join(tags).lower(),
+            'boston' in note
+        ])
+    
+    def _is_online_order(self, order: Dict) -> bool:
+        """Check if order is from online store"""
+        source = order.get('source_name', '').lower()
+        
+        # Common indicators for online orders
+        return source in ['web', 'online_store', 'shopify'] and not self._is_charleston_pos(order) and not self._is_boston_pos(order)

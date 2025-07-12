@@ -59,8 +59,14 @@ class ShopifyService:
                         'line_items': [],
                         'tags': order.tags.split(', ') if order.tags else [],
                         'note': order.note,
-                        'financial_status': order.financial_status
+                        'financial_status': order.financial_status,
+                        'source_name': getattr(order, 'source_name', ''),
+                        'location_id': getattr(order, 'location_id', '')
                     }
+                    
+                    # Debug logging to understand order sources
+                    if len(orders) < 5:  # Only log first few orders
+                        print(f"Order {order.id}: source={order_data['source_name']}, tags={order_data['tags']}, location_id={order_data['location_id']}")
                     
                     for item in order.line_items:
                         order_data['line_items'].append({
