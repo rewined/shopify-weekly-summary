@@ -122,7 +122,7 @@ class ShopifyScheduler:
                     # Generate PDF report
                     pdf_path = report_generator.generate_report(
                         analytics_data,
-                        ai_insights.get('insights_html', '')
+                        ai_insights.get('insights_text', ai_insights.get('insights_html', ''))
                     )
                     
                     # Send email
@@ -130,7 +130,7 @@ class ShopifyScheduler:
                         recipient_email=recipient_email,
                         recipient_name=recipient_name,
                         analytics_data=analytics_data,
-                        insights=ai_insights.get('insights_html', ''),
+                        insights=ai_insights.get('insights_text', ai_insights.get('insights_html', '')),
                         questions=ai_insights.get('questions', []),
                         pdf_attachment=pdf_path
                     )
@@ -140,7 +140,7 @@ class ShopifyScheduler:
                         self.db.save_conversation(
                             recipient_email=recipient_email,
                             report_date=analytics_data['week_start'],
-                            insights=ai_insights.get('insights_html', ''),
+                            insights=ai_insights.get('insights_text', ai_insights.get('insights_html', '')),
                             questions=ai_insights.get('questions', []),
                             pdf_path=pdf_path
                         )
@@ -213,7 +213,7 @@ class ShopifyScheduler:
             # Generate PDF
             pdf_path = report_generator.generate_report(
                 analytics_data,
-                ai_insights.get('insights_html', '')
+                ai_insights.get('insights_text', ai_insights.get('insights_html', ''))
             )
             
             # Send email
@@ -221,7 +221,7 @@ class ShopifyScheduler:
                 recipient_email=recipient_email,
                 recipient_name=recipient_name,
                 analytics_data=analytics_data,
-                insights=ai_insights.get('insights_html', ''),
+                insights=ai_insights.get('insights_text', ai_insights.get('insights_html', '')),
                 questions=ai_insights.get('questions', []),
                 pdf_attachment=pdf_path
             )
@@ -231,7 +231,7 @@ class ShopifyScheduler:
                 self.db.save_conversation(
                     recipient_email=recipient_email,
                     report_date=analytics_data['week_start'],
-                    insights=ai_insights.get('insights_html', ''),
+                    insights=ai_insights.get('insights_text', ai_insights.get('insights_html', '')),
                     questions=ai_insights.get('questions', []),
                     pdf_path=pdf_path
                 )

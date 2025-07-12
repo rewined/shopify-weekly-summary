@@ -180,7 +180,7 @@ Hope your week is off to a good start. I just finished going through last week's
 
 You brought in ${analytics_data['total_revenue']:,.2f} from {analytics_data['total_orders']} orders, with customers spending about ${analytics_data['avg_order_value']:.2f} on average.{goals_text}{products_text}
 
-{insights}
+{insights if isinstance(insights, str) else insights.get('insights_text', insights)}
 
 {chr(10).join([f'- {q}' for q in questions])}
 

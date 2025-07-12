@@ -109,7 +109,10 @@ class ConversationalInsights:
             # Try to parse as JSON
             try:
                 result = json.loads(content)
-            except:
+                # Ensure we have the right keys
+                if 'insights_html' in result and 'insights_text' not in result:
+                    result['insights_text'] = result['insights_html']
+            except json.JSONDecodeError:
                 # Fallback if not valid JSON
                 result = {
                     "insights_text": content,
