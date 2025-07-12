@@ -446,6 +446,36 @@ def test_json_email():
     
     return f"<pre>Input JSON:\n{test_json}\n\nExtracted Email:\n{result}</pre>"
 
+@app.route('/test-google-sheets')
+def test_google_sheets():
+    """Test Google Sheets connection via MCP"""
+    if not analytics:
+        init_services()
+    
+    try:
+        # Test the connection
+        connection_test = analytics.sheets_service.test_connection()
+        
+        # Try to get sample goals
+        from datetime import datetime
+        sample_goals = analytics.sheets_service.get_weekly_goals(datetime.now())
+        
+        return jsonify({
+            'connection_test': connection_test,
+            'sample_goals': sample_goals,
+            'spreadsheet_ids': {
+                'charleston': analytics.sheets_service.charleston_sheet_id,
+                'boston': analytics.sheets_service.boston_sheet_id
+            }
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
 if __name__ == '__main__':
     # Initialize services
     init_services()

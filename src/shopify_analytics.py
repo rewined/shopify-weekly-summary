@@ -5,11 +5,13 @@ from collections import defaultdict
 import os
 import json
 import re
+from .google_sheets_service import GoogleSheetsService
 
 
 class ShopifyAnalytics:
     def __init__(self, shopify_service):
         self.shopify = shopify_service
+        self.sheets_service = GoogleSheetsService()
         self.feedback_context = self._load_feedback_context()
     
     def _load_feedback_context(self):
@@ -94,8 +96,8 @@ class ShopifyAnalytics:
             multi_week_trends = self._analyze_multi_week_trends(week_start)
             product_categories = self._analyze_product_categories(current_orders)
         
-        # Add goals data (these would ideally come from the Google Sheets)
-        goals_data = self._get_store_goals(week_start)
+        # Get goals data from Google Sheets via MCP
+        goals_data = self.sheets_service.get_weekly_goals(week_start)
         
         # Calculate conversion metrics if we have traffic data
         conversion_metrics = self._calculate_conversion_metrics(current_metrics, goals_data)
