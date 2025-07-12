@@ -84,7 +84,7 @@ def generate_report():
         end_date = datetime.strptime(week_end, '%Y-%m-%d')
         
         # Generate report
-        weekly_data = analytics.get_weekly_summary(start_date, end_date)
+        weekly_data = analytics.analyze_weekly_data(start_date)
         # Get feedback context for recipient
         feedback_context = feedback_db.get_feedback_context_for_email(recipient_email)
         
