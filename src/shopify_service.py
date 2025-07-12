@@ -42,12 +42,11 @@ class ShopifyService:
                 'limit': 250
             }
             
-            while True:
-                batch = shopify.Order.find(**params)
-                
-                if not batch:
-                    break
-                
+            # Just fetch orders without pagination for now
+            # The ShopifyAPI library doesn't support cursor pagination properly
+            batch = shopify.Order.find(**params)
+            
+            if batch:
                 for order in batch:
                     order_data = {
                         'id': order.id,
@@ -74,11 +73,6 @@ class ShopifyService:
                         })
                     
                     orders.append(order_data)
-                
-                # For ShopifyAPI library, just check if we got less than the limit
-                # This means we've reached the last page
-                if len(batch) < 250:
-                    break
             
             print(f"Total orders fetched: {len(orders)}")
             return orders
@@ -92,12 +86,10 @@ class ShopifyService:
             products = []
             params = {'limit': 250}
             
-            while True:
-                batch = shopify.Product.find(**params)
-                
-                if not batch:
-                    break
-                
+            # Just fetch products without pagination for now
+            batch = shopify.Product.find(**params)
+            
+            if batch:
                 for product in batch:
                     product_data = {
                         'id': product.id,
@@ -118,10 +110,6 @@ class ShopifyService:
                         })
                     
                     products.append(product_data)
-                
-                # For ShopifyAPI library, just check if we got less than the limit
-                if len(batch) < 250:
-                    break
             
             return products
             
