@@ -23,7 +23,7 @@ class ShopifyAnalytics:
                 pass
         return {}
     
-    def analyze_weekly_data(self, week_start: datetime = None, include_trends: bool = True) -> Dict[str, Any]:
+    def analyze_weekly_data(self, week_start: datetime = None, include_trends: bool = False) -> Dict[str, Any]:
         """Analyze data for a specific week, defaulting to last week"""
         if not week_start:
             # Default to last Monday
@@ -437,8 +437,8 @@ class ShopifyAnalytics:
             'top_products_trend': {}
         }
         
-        # Get data for past 4 weeks
-        for i in range(4):
+        # Get data for past 2 weeks (reduced from 4 to prevent timeouts)
+        for i in range(2):
             week_start = current_week_start - timedelta(weeks=i)
             week_end = week_start + timedelta(days=6, hours=23, minutes=59, seconds=59)
             

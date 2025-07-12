@@ -79,27 +79,33 @@ def generate_report():
         week_start = data.get('week_start')
         week_end = data.get('week_end')
         
+        print(f"Generating report for {recipient_email} from {week_start} to {week_end}")
+        
         # Convert dates
         start_date = datetime.strptime(week_start, '%Y-%m-%d')
         end_date = datetime.strptime(week_end, '%Y-%m-%d')
         
-        # Generate report
-        weekly_data = analytics.analyze_weekly_data(start_date)
+        # Generate report (disable trends for now to prevent timeouts)
+        print("Fetching analytics data...")
+        weekly_data = analytics.analyze_weekly_data(start_date, include_trends=False)
         # Get feedback context for recipient
         feedback_context = feedback_db.get_feedback_context_for_email(recipient_email)
         
+        print("Generating AI insights...")
         conversational_report = insights.generate_insights(
             weekly_data, 
             recipient_name,
             feedback_context
         )
         
+        print("Generating PDF report...")
         # Generate PDF
         pdf_path = report_generator.generate_report(
             weekly_data,
             conversational_report.get('insights_text', conversational_report.get('insights_html', ''))
         )
         
+        print("Sending email...")
         # Send email
         email_service.send_weekly_report(
             recipient_email=recipient_email,
@@ -110,6 +116,7 @@ def generate_report():
             pdf_attachment=pdf_path
         )
         
+        print("Report sent successfully!")
         return jsonify({'success': True, 'message': 'Report sent successfully!'})
         
     except Exception as e:
