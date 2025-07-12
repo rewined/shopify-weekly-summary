@@ -41,50 +41,51 @@ class ShopifyAnalytics:
         prev_year_end = week_end - timedelta(days=365)
         prev_year_orders = self.shopify.get_orders_for_period(prev_year_start, prev_year_end)
         
-        # Separate orders by location (POS vs Online)
+        # Separate orders by location (POS only - exclude online)
         current_charleston = [o for o in current_orders if self._is_charleston_pos(o)]
         current_boston = [o for o in current_orders if self._is_boston_pos(o)]
-        current_online = [o for o in current_orders if self._is_online_order(o)]
+        # Exclude online orders completely
         
         prev_charleston = [o for o in prev_year_orders if self._is_charleston_pos(o)]
         prev_boston = [o for o in prev_year_orders if self._is_boston_pos(o)]
-        prev_online = [o for o in prev_year_orders if self._is_online_order(o)]
+        # Exclude online orders completely
         
-        # Process the data by location
+        # Combine store orders only (no online)
+        current_store_orders = current_charleston + current_boston
+        prev_store_orders = prev_charleston + prev_boston
+        
+        # Process the data by location (stores only)
         current_metrics = {
-            'all': self._calculate_metrics(current_orders),
+            'all': self._calculate_metrics(current_store_orders),
             'charleston': self._calculate_metrics(current_charleston),
-            'boston': self._calculate_metrics(current_boston),
-            'online': self._calculate_metrics(current_online)
+            'boston': self._calculate_metrics(current_boston)
         }
         prev_year_metrics = {
-            'all': self._calculate_metrics(prev_year_orders),
+            'all': self._calculate_metrics(prev_store_orders),
             'charleston': self._calculate_metrics(prev_charleston),
-            'boston': self._calculate_metrics(prev_boston),
-            'online': self._calculate_metrics(prev_online)
+            'boston': self._calculate_metrics(prev_boston)
         }
         
         # Calculate year-over-year changes
         yoy_changes = self._calculate_yoy_changes(current_metrics, prev_year_metrics)
         
-        # Get product performance
-        product_performance = self._analyze_product_performance(current_orders)
+        # Get product performance (stores only)
+        product_performance = self._analyze_product_performance(current_store_orders)
         
-        # Get product performance by location
+        # Get product performance by location (stores only)
         product_performance_by_location = {
             'charleston': self._analyze_product_performance(current_charleston),
-            'boston': self._analyze_product_performance(current_boston),
-            'online': self._analyze_product_performance(current_online)
+            'boston': self._analyze_product_performance(current_boston)
         }
         
-        # Get workshop analytics
-        workshop_data = self._analyze_workshops(current_orders)
+        # Get workshop analytics (stores only)
+        workshop_data = self._analyze_workshops(current_store_orders)
         
-        # Get customer insights
-        customer_insights = self._analyze_customers(current_orders)
+        # Get customer insights (stores only)
+        customer_insights = self._analyze_customers(current_store_orders)
         
-        # Identify trends and patterns
-        trends = self._identify_trends(current_orders, prev_year_orders)
+        # Identify trends and patterns (stores only)
+        trends = self._identify_trends(current_store_orders, prev_store_orders)
         
         # Get multi-week trends if requested
         multi_week_trends = {}
@@ -167,8 +168,8 @@ class ShopifyAnalytics:
         """Calculate year-over-year percentage changes"""
         changes = {}
         
-        # Calculate changes for each location
-        for location in ['all', 'charleston', 'boston', 'online']:
+        # Calculate changes for each location (stores only)
+        for location in ['all', 'charleston', 'boston']:
             changes[location] = {}
             current_loc = current.get(location, {})
             previous_loc = previous.get(location, {})
