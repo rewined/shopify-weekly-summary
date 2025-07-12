@@ -87,23 +87,40 @@ def generate_report():
         
         # Generate report (disable trends for now to prevent timeouts)
         print("Fetching analytics data...")
-        weekly_data = analytics.analyze_weekly_data(start_date, include_trends=False)
+        try:
+            weekly_data = analytics.analyze_weekly_data(start_date, include_trends=False)
+        except Exception as e:
+            print(f"Error fetching analytics: {str(e)}")
+            return jsonify({'success': False, 'error': f'Failed to fetch analytics data: {str(e)}'}), 500
+            
         # Get feedback context for recipient
         feedback_context = feedback_db.get_feedback_context_for_email(recipient_email)
         
         print("Generating AI insights...")
-        conversational_report = insights.generate_insights(
-            weekly_data, 
-            recipient_name,
-            feedback_context
-        )
+        try:
+            conversational_report = insights.generate_insights(
+                weekly_data, 
+                recipient_name,
+                feedback_context
+            )
+        except Exception as e:
+            print(f"Error generating insights: {str(e)}")
+            # Use fallback insights if AI generation fails
+            conversational_report = {
+                'insights_text': 'Unable to generate AI insights at this time.',
+                'questions': []
+            }
         
         print("Generating PDF report...")
-        # Generate PDF
-        pdf_path = report_generator.generate_report(
-            weekly_data,
-            conversational_report.get('insights_text', conversational_report.get('full_email', ''))
-        )
+        try:
+            # Generate PDF
+            pdf_path = report_generator.generate_report(
+                weekly_data,
+                conversational_report.get('insights_text', conversational_report.get('full_email', ''))
+            )
+        except Exception as e:
+            print(f"Error generating PDF: {str(e)}")
+            pdf_path = None
         
         print("Sending email...")
         # Send email
@@ -120,6 +137,9 @@ def generate_report():
         return jsonify({'success': True, 'message': 'Report sent successfully!'})
         
     except Exception as e:
+        print(f"Error in generate_report: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/send-test-email', methods=['POST'])
@@ -314,6 +334,44 @@ def analyze_locations():
             'success': False,
             'error': str(e)
         }), 500
+
+@app.route('/test-quick-report')
+def test_quick_report():
+    """Quick test without AI or PDF generation"""
+    if not shopify_service:
+        init_services()
+    
+    try:
+        # Get last week's data
+        today = datetime.now()
+        days_since_monday = today.weekday()
+        week_start = today - timedelta(days=days_since_monday + 7)
+        
+        print("Testing quick analytics fetch...")
+        weekly_data = analytics.analyze_weekly_data(week_start, include_trends=False)
+        
+        # Create a simple text summary without AI
+        summary = f"""
+Weekly Summary for {weekly_data['week_start']} to {weekly_data['week_end']}
+
+Total Revenue: ${weekly_data['total_revenue']:,.2f}
+Total Orders: {weekly_data['total_orders']}
+Average Order Value: ${weekly_data['avg_order_value']:.2f}
+
+Charleston:
+- Orders: {weekly_data['current_week_by_location']['charleston']['order_count']}
+- Revenue: ${weekly_data['current_week_by_location']['charleston']['total_revenue']:,.2f}
+
+Boston:
+- Orders: {weekly_data['current_week_by_location']['boston']['order_count']}
+- Revenue: ${weekly_data['current_week_by_location']['boston']['total_revenue']:,.2f}
+        """
+        
+        return f"<pre>{summary}</pre>"
+        
+    except Exception as e:
+        import traceback
+        return f"<pre>Error: {str(e)}\n\n{traceback.format_exc()}</pre>", 500
 
 if __name__ == '__main__':
     # Initialize services
