@@ -73,16 +73,16 @@ class ShopifyScheduler:
         logger.info(f"Weekly report scheduled for day {day_of_week} at {hour}:00 {timezone}")
     
     def _schedule_reply_processing(self):
-        """Schedule hourly email reply processing"""
+        """Schedule email reply processing every 5 minutes"""
         self.scheduler.add_job(
             func=self.process_email_replies,
             trigger='interval',
-            hours=1,
+            minutes=5,
             id='process_email_replies',
             replace_existing=True
         )
         
-        logger.info("Email reply processing scheduled every hour")
+        logger.info("Email reply processing scheduled every 5 minutes")
     
     def _schedule_daily_sheets_refresh(self):
         """Schedule daily Google Sheets data refresh"""
