@@ -97,7 +97,7 @@ def generate_report():
         # Generate PDF
         pdf_path = report_generator.generate_report(
             weekly_data,
-            conversational_report.get('insights_html', '')
+            conversational_report.get('insights_text', conversational_report.get('insights_html', ''))
         )
         
         # Send email
@@ -105,7 +105,7 @@ def generate_report():
             recipient_email=recipient_email,
             recipient_name=recipient_name,
             analytics_data=weekly_data,
-            insights=conversational_report.get('insights_html', ''),
+            insights=conversational_report.get('insights_text', conversational_report.get('insights_html', '')),
             questions=conversational_report.get('questions', []),
             pdf_attachment=pdf_path
         )

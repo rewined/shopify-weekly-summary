@@ -20,46 +20,8 @@ class ConversationalEmailService:
         self.app = app
         self.mail = Mail(app)
     
-    def get_greeting(self):
-        greetings = [
-            "Hey {name}! 👋",
-            "Hi {name}!",
-            "Hello {name}!",
-            "Good morning {name}!",
-        ]
-        return random.choice(greetings)
     
-    def get_opening_line(self):
-        openings = [
-            "Hope you had an awesome weekend!",
-            "Happy Monday!",
-            "Hope your week's starting off great!",
-            "Another week, another batch of data to dig through!",
-            "Hope you're ready for some numbers!",
-        ]
-        return random.choice(openings)
-    
-    def get_closing(self):
-        closings = [
-            "Let me know what you think!",
-            "Can't wait to hear back from you!",
-            "Would love to know if I'm on the right track here!",
-            "Super curious to hear your thoughts!",
-            "Hit me back with any questions!",
-        ]
-        return random.choice(closings)
-    
-    def get_sign_off(self):
-        sign_offs = [
-            "Cheers",
-            "Best",
-            "Thanks",
-            "Talk soon",
-            "-Sophie",
-        ]
-        return random.choice(sign_offs)
-    
-    def create_weekly_email_html(self, recipient_name, analytics_data, insights, questions):
+    def _removed_create_weekly_email_html(self, recipient_name, analytics_data, insights, questions):
         template = f"""
         <!DOCTYPE html>
         <html>
@@ -168,34 +130,67 @@ class ConversationalEmailService:
         return template
     
     def create_weekly_email_text(self, recipient_name, analytics_data, insights, questions):
-        text = f"""
-{self.get_greeting().format(name=recipient_name)}
+        # Format performance vs goals text
+        goals_text = ""
+        if 'goals' in analytics_data and 'conversion_metrics' in analytics_data:
+            charleston_metrics = analytics_data['conversion_metrics'].get('charleston', {})
+            charleston_current = analytics_data['current_week_by_location'].get('charleston', {})
+            charleston_goals = analytics_data['goals'].get('charleston', {})
+            
+            boston_metrics = analytics_data['conversion_metrics'].get('boston', {})
+            boston_current = analytics_data['current_week_by_location'].get('boston', {})
+            boston_goals = analytics_data['goals'].get('boston', {})
+            
+            goals_text = "\n\nQuick check on our goals:\n\n"
+            
+            if charleston_current.get('order_count', 0) > 0:
+                revenue_pct = charleston_metrics.get('revenue_vs_goal_pct', 0)
+                avg_ticket = charleston_current.get('avg_order_value', 0)
+                avg_goal = charleston_goals.get('avg_ticket_goal', 0)
+                goals_text += f"Charleston hit {revenue_pct:.0f}% of revenue goal with ${avg_ticket:.0f} average tickets (goal is ${avg_goal:.0f})\n"
+            
+            if boston_current.get('order_count', 0) > 0:
+                revenue_pct = boston_metrics.get('revenue_vs_goal_pct', 0)
+                avg_ticket = boston_current.get('avg_order_value', 0)
+                goals_text += f"Boston hit {revenue_pct:.0f}% of target with ${avg_ticket:.0f} average tickets\n"
+        
+        # Format top products text
+        products_text = ""
+        if 'product_performance_by_location' in analytics_data:
+            charleston_products = analytics_data['product_performance_by_location']['charleston'][:2]
+            boston_products = analytics_data['product_performance_by_location']['boston'][:2]
+            
+            if charleston_products or boston_products:
+                products_text = "\n\nTop sellers this week:\n\n"
+                if charleston_products:
+                    products_text += f"Charleston: {charleston_products[0]['product']} (${charleston_products[0]['revenue']:,.0f})"
+                    if len(charleston_products) > 1:
+                        products_text += f" and {charleston_products[1]['product']}"
+                    products_text += "\n"
+                
+                if boston_products:
+                    products_text += f"Boston: {boston_products[0]['product']} (${boston_products[0]['revenue']:,.0f})"
+                    if len(boston_products) > 1:
+                        products_text += f" and {boston_products[1]['product']}"
+                    products_text += "\n"
+        
+        text = f"""Hi {recipient_name},
 
-{self.get_opening_line()} So I just finished crunching through last week's numbers and found some pretty interesting stuff I think you'll want to see!
+Hope your week is off to a good start. I just finished going through last week's numbers and wanted to share what I found.
 
-HERE'S WHAT HAPPENED THIS WEEK
-==============================
-You guys brought in ${analytics_data['total_revenue']:,.2f} this week! That came from {analytics_data['total_orders']} happy customers, 
-with each one spending about ${analytics_data['avg_order_value']:.2f} on average.
+You brought in ${analytics_data['total_revenue']:,.2f} from {analytics_data['total_orders']} orders, with customers spending about ${analytics_data['avg_order_value']:.2f} on average.{goals_text}{products_text}
 
-WHAT CAUGHT MY EYE
-==================
 {insights}
 
-I'M CURIOUS ABOUT...
-===================
 {chr(10).join([f'- {q}' for q in questions])}
 
-{self.get_closing()} Just hit reply - I actually read these. :)
+Let me know if you have any questions or if there's anything specific you'd like me to look into next week.
 
-{self.get_sign_off()},
+Thanks,
 Sophie Blake
 Rewined Intern
 
-P.S. Full report attached if you want all the nerdy details!
-
-View Full Dashboard: {os.getenv('APP_URL', 'http://localhost:5000')}/shopify-summary
-        """
+P.S. I attached the full report with all the details."""
         return text
     
     def _format_top_products_section(self, analytics_data):
@@ -312,9 +307,9 @@ View Full Dashboard: {os.getenv('APP_URL', 'http://localhost:5000')}/shopify-sum
     def send_weekly_report(self, recipient_email, recipient_name, analytics_data, insights, questions, pdf_attachment=None):
         try:
             subject_lines = [
-                f"Hey {recipient_name}! Your Candlefish weekly recap is here 🕯️",
-                f"{recipient_name}, your weekly wins at Candlefish! 📊",
-                f"Your Candlefish numbers are looking interesting, {recipient_name}! 👀",
+                f"Weekly numbers for {analytics_data['week_start']}",
+                f"Candlefish weekly recap - {analytics_data['week_start']}",
+                f"Your weekly report is ready",
             ]
             
             msg = Message(
@@ -324,7 +319,7 @@ View Full Dashboard: {os.getenv('APP_URL', 'http://localhost:5000')}/shopify-sum
                 reply_to=os.getenv('MAIL_USERNAME')
             )
             
-            msg.html = self.create_weekly_email_html(recipient_name, analytics_data, insights, questions)
+            # Only use plain text, no HTML
             msg.body = self.create_weekly_email_text(recipient_name, analytics_data, insights, questions)
             
             if pdf_attachment:
@@ -345,7 +340,7 @@ View Full Dashboard: {os.getenv('APP_URL', 'http://localhost:5000')}/shopify-sum
     def send_error_notification(self, error_message):
         try:
             msg = Message(
-                subject="⚠️ Candlefish Weekly Report Error",
+                subject="Candlefish Weekly Report Error",
                 sender=os.getenv('MAIL_DEFAULT_SENDER'),
                 recipients=[os.getenv('MAIL_USERNAME')]
             )
@@ -372,89 +367,27 @@ Analytics System
         """Send a test email to verify configuration"""
         try:
             msg = Message(
-                subject="🎉 Sophie Blake here - Your Shopify Analytics are ready!",
+                subject="Test - Candlefish Weekly Analytics",
                 sender=os.getenv('MAIL_DEFAULT_SENDER'),
                 recipients=[recipient_email],
                 reply_to=os.getenv('MAIL_USERNAME')
             )
             
-            msg.html = f"""
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <style>
-                    body {{
-                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-                        line-height: 1.6;
-                        color: #333;
-                        max-width: 600px;
-                        margin: 0 auto;
-                        padding: 20px;
-                    }}
-                    .header {{
-                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                        color: white;
-                        padding: 30px;
-                        border-radius: 10px;
-                        margin-bottom: 30px;
-                    }}
-                </style>
-            </head>
-            <body>
-                <div class="header">
-                    <h1 style="margin: 0;">Test Email from Sophie Blake 🕯️</h1>
-                    <p style="margin: 10px 0 0 0;">Your Analytics Assistant</p>
-                </div>
-                
-                <p>Hey there! 👋</p>
-                
-                <p>Great news - your email configuration is working perfectly! This is Sophie Blake, your friendly analytics assistant for Candlefish.</p>
-                
-                <p>When you receive your weekly reports, they'll include:</p>
-                <ul>
-                    <li>📊 Weekly sales performance and trends</li>
-                    <li>🎯 Top-performing products</li>
-                    <li>👥 Customer insights</li>
-                    <li>📈 Year-over-year comparisons</li>
-                    <li>💡 AI-powered insights and recommendations</li>
-                </ul>
-                
-                <p>The best part? You can simply reply to my emails with any context, questions, or feedback, and I'll incorporate that into future reports!</p>
-                
-                <p>Looking forward to helping you understand your business better!</p>
-                
-                <p>Cheers,<br>
-                Sophie Blake<br>
-                <span style="font-size: 12px; color: #718096;">Your Friendly Analytics Assistant</span></p>
-                
-                <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0; font-size: 14px; color: #718096;">
-                    <p>P.S. You'll receive your weekly reports every Monday morning!</p>
-                </div>
-            </body>
-            </html>
-            """
-            
-            msg.body = """
-Hey there! 👋
+            msg.body = """Hi,
 
-Great news - your email configuration is working perfectly! This is Sophie Blake, your friendly analytics assistant for Candlefish.
+This is a test email to confirm your weekly analytics reports are set up correctly.
 
-When you receive your weekly reports, they'll include:
-- Weekly sales performance and trends
-- Top-performing products
-- Customer insights
-- Year-over-year comparisons
-- AI-powered insights and recommendations
+Starting next Monday, you'll receive:
+- Weekly performance metrics for Charleston and Boston stores
+- Progress toward revenue and average ticket goals
+- Top selling products by location
+- Analysis and insights about store performance
 
-The best part? You can simply reply to my emails with any context, questions, or feedback, and I'll incorporate that into future reports!
+You can reply to these emails with any questions or feedback.
 
-Looking forward to helping you understand your business better!
-
-Cheers,
+Thanks,
 Sophie Blake
-Your Friendly Analytics Assistant
-
-P.S. You'll receive your weekly reports every Monday morning!
+Rewined Intern
             """
             
             self.mail.send(msg)

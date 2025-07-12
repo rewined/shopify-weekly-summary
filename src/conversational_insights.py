@@ -76,22 +76,21 @@ class ConversationalInsights:
         {context}
         
         Please provide:
-        1. A conversational HTML-formatted insights section (2-3 paragraphs) that tells a story about the data
-        2. Three specific, engaging questions to ask {recipient_name} that will help provide better insights next time
+        1. A plain text insights section (2-3 paragraphs) that explains the key findings from the data
+        2. Three specific questions to ask {recipient_name} that will help provide better insights next time
         
-        Format your response as JSON with keys: "insights_html" and "questions"
+        Format your response as JSON with keys: "insights_text" and "questions"
         
         Guidelines:
-        - Write like an enthusiastic intern, not a corporate consultant
-        - Be genuinely excited about good news and curious about patterns
-        - Use casual language like "wow", "looks like", "I noticed", "pretty cool"
-        - Reference specific numbers but explain them conversationally
+        - Write in plain text, no HTML tags or emojis
+        - Be professional but conversational, like a regular email
+        - Reference specific numbers and explain what they mean
+        - Keep it straightforward and clear
         - If there's past feedback, reference it naturally
-        - Celebrate wins with genuine excitement
-        - Be curious and ask questions like you're learning the business
-        - Use contractions and speak naturally
-        - Include relevant emojis sparingly (1-2 total)
-        - Sound like you're in your early 20s and eager to help
+        - Note wins and areas for improvement matter-of-factly
+        - Ask practical questions that show you're paying attention
+        - Write like you're sending a normal work email
+        - Keep insights concise and focused on the data
         """
         
         try:
@@ -113,7 +112,7 @@ class ConversationalInsights:
             except:
                 # Fallback if not valid JSON
                 result = {
-                    "insights_html": content,
+                    "insights_text": content,
                     "questions": [
                         "What's been the customer response to your recent changes?",
                         "Are there any special events or promotions you're planning?",
@@ -166,30 +165,20 @@ class ConversationalInsights:
         yoy = analytics_data.get('yoy_changes', {})
         products = analytics_data.get('product_performance', [])
         
-        insights = f"""
-        <p>Hey! So I've been digging through this week's numbers and wow, there's some cool stuff happening!</p>
-        
-        <p>You guys pulled in <strong>${current.get('total_revenue', 0):,.2f}</strong> from 
-        <strong>{current.get('order_count', 0)}</strong> orders this week. 
-        {"That's up " + str(abs(yoy.get('total_revenue_change', 0))) + "% from last year - that's awesome!" 
-         if yoy.get('total_revenue_change', 0) > 0 
-         else "It's down a bit from last year, but honestly, that happens sometimes."}
-        </p>
-        
-        <p>{"Oh, and <strong>" + products[0]['product'] + "</strong> was your top seller - people are really into it! " 
-           if products else ""}
-        I noticed customers are spending about <strong>${current.get('avg_order_value', 0):.2f}</strong> per order, 
-        which is pretty solid - looks like they're finding multiple things they love!</p>
-        """
+        insights = f"""Looking at this week's performance, you brought in ${current.get('total_revenue', 0):,.2f} from {current.get('order_count', 0)} orders. {"That's up " + str(abs(yoy.get('total_revenue_change', 0))) + "% from the same week last year." if yoy.get('total_revenue_change', 0) > 0 else "That's down " + str(abs(yoy.get('total_revenue_change', 0))) + "% from the same week last year."}
+
+{"Your top seller was " + products[0]['product'] + ", " if products else ""}{"and c" if products else "C"}ustomers spent an average of ${current.get('avg_order_value', 0):.2f} per order.
+
+Based on these numbers, {"revenue is trending well above last year" if yoy.get('total_revenue_change', 0) > 10 else "revenue could use some attention" if yoy.get('total_revenue_change', 0) < -10 else "revenue is holding steady"}. The average order value {"shows customers are finding multiple items they like" if current.get('avg_order_value', 0) > 80 else "might benefit from some upselling opportunities"}."""
         
         questions = [
-            "So I noticed some interesting patterns this week - did you guys have any special events or promotions going on?",
-            "Your workshop numbers caught my eye - are there any new classes coming up that I should know about?",
-            "What's the deal with your best sellers this week? Any cool stories behind why they're so popular?"
+            "Were there any special events or promotions running this week that would have affected these numbers?",
+            "Are there any specific product categories or workshops you'd like me to track more closely?",
+            "What are your main priorities for improving store performance in the coming weeks?"
         ]
         
         return {
-            "insights_html": insights,
+            "insights_text": insights,
             "questions": questions
         }
     
