@@ -141,18 +141,76 @@ class ConversationalInsights:
             
             # Try to parse as JSON
             try:
-                result = json.loads(content)
+                # Clean up control characters that cause JSON parsing issues
+                cleaned_content = content.replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t')
+                # Try the cleaned version first
+                try:
+                    result = json.loads(cleaned_content)
+                except:
+                    # If that fails, try the original
+                    result = json.loads(content)
                 print(f"Successfully parsed JSON with keys: {result.keys()}")
                 
-                # Simplified logging to avoid timeouts
+                # Detailed logging to show Sophie's data sources and calculations
                 email_text = result.get('full_email', '')
                 if email_text:
-                    print(f"Sophie's email generated successfully ({len(email_text)} chars)")
+                    print(f"\n=== SOPHIE'S EMAIL ANALYSIS ===")
+                    print(f"Email generated successfully ({len(email_text)} chars)")
                     
-                    # Quick data validation
-                    charleston_rev = analytics_data.get('current_week_by_location', {}).get('charleston', {}).get('total_revenue', 0)
-                    boston_rev = analytics_data.get('current_week_by_location', {}).get('boston', {}).get('total_revenue', 0)
-                    print(f"Source data: Charleston=${charleston_rev:.0f}, Boston=${boston_rev:.0f}")
+                    # Extract numbers Sophie mentions in her email
+                    import re
+                    revenue_mentions = re.findall(r'\$([0-9,]+(?:\.[0-9]{2})?)', email_text)
+                    percentage_mentions = re.findall(r'([0-9]+(?:\.[0-9]+)?%)', email_text)
+                    order_mentions = re.findall(r'([0-9]+) orders?', email_text, re.IGNORECASE)
+                    
+                    print(f"Numbers Sophie mentioned:")
+                    print(f"  - Revenue figures: ${', $'.join(revenue_mentions)}")
+                    print(f"  - Percentages: {', '.join(percentage_mentions)}")
+                    print(f"  - Order counts: {', '.join(order_mentions)} orders")
+                    
+                    # Show the actual Shopify data Sophie had access to
+                    print(f"\nSOURCE DATA (from Shopify API):")
+                    current_week = analytics_data.get('current_week_by_location', {})
+                    charleston_data = current_week.get('charleston', {})
+                    boston_data = current_week.get('boston', {})
+                    all_data = current_week.get('all', {})
+                    
+                    print(f"  Charleston: ${charleston_data.get('total_revenue', 0):.2f} revenue, {charleston_data.get('order_count', 0)} orders")
+                    print(f"  Boston: ${boston_data.get('total_revenue', 0):.2f} revenue, {boston_data.get('order_count', 0)} orders")
+                    print(f"  Combined: ${all_data.get('total_revenue', 0):.2f} revenue, {all_data.get('order_count', 0)} orders")
+                    
+                    # Show YoY data
+                    yoy_changes = analytics_data.get('yoy_changes', {})
+                    if yoy_changes:
+                        print(f"\nYEAR-OVER-YEAR DATA (from Shopify API):")
+                        charleston_yoy = yoy_changes.get('charleston', {})
+                        boston_yoy = yoy_changes.get('boston', {})
+                        all_yoy = yoy_changes.get('all', {})
+                        print(f"  Charleston revenue change: {charleston_yoy.get('total_revenue_change', 'N/A')}%")
+                        print(f"  Boston revenue change: {boston_yoy.get('total_revenue_change', 'N/A')}%") 
+                        print(f"  Combined revenue change: {all_yoy.get('total_revenue_change', 'N/A')}%")
+                    
+                    # Show goals data if available
+                    goals = analytics_data.get('goals', {})
+                    conversion_metrics = analytics_data.get('conversion_metrics', {})
+                    if goals and conversion_metrics:
+                        print(f"\nGOALS DATA (from Google Sheets?):")
+                        charleston_goals = goals.get('charleston', {})
+                        boston_goals = goals.get('boston', {})
+                        charleston_metrics = conversion_metrics.get('charleston', {})
+                        boston_metrics = conversion_metrics.get('boston', {})
+                        
+                        print(f"  Charleston: {charleston_metrics.get('revenue_vs_goal_pct', 'N/A')}% of ${charleston_goals.get('revenue_goal', 'N/A')} goal")
+                        print(f"  Boston: {boston_metrics.get('revenue_vs_goal_pct', 'N/A')}% of ${boston_goals.get('revenue_goal', 'N/A')} goal")
+                    
+                    # Show product performance
+                    products = analytics_data.get('product_performance', [])
+                    if products:
+                        print(f"\nTOP PRODUCTS (from Shopify API):")
+                        for i, product in enumerate(products[:3]):
+                            print(f"  {i+1}. {product['product'][:30]}... - {product['quantity']} units, ${product['revenue']:.2f}")
+                    
+                    print("=== END ANALYSIS ===\n")
                 else:
                     print("Warning: No email text generated")
                 
