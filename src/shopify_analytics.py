@@ -300,36 +300,18 @@ class ShopifyAnalytics:
     
     def _is_charleston_pos(self, order: Dict) -> bool:
         """Check if order is from Charleston POS"""
-        # Check tags for location identifiers
-        tags = order.get('tags', [])
-        note = order.get('note', '').lower()
-        
-        # Common indicators for Charleston POS
-        return any([
-            'charleston' in ' '.join(tags).lower(),
-            'chs' in ' '.join(tags).lower(),
-            'pos' in ' '.join(tags).lower() and 'boston' not in ' '.join(tags).lower(),
-            'charleston' in note,
-            # Check if source is POS and not tagged as Boston
-            order.get('source_name', '').lower() == 'pos' and not self._is_boston_pos(order)
-        ])
+        # Charleston store location ID is 10719053
+        location_id = order.get('location_id')
+        return str(location_id) == '10719053'
     
     def _is_boston_pos(self, order: Dict) -> bool:
         """Check if order is from Boston POS"""
-        # Check tags for location identifiers
-        tags = order.get('tags', [])
-        note = order.get('note', '').lower()
-        
-        # Common indicators for Boston POS
-        return any([
-            'boston' in ' '.join(tags).lower(),
-            'bos' in ' '.join(tags).lower(),
-            'boston' in note
-        ])
+        # Boston store location ID is 71781154968
+        location_id = order.get('location_id')
+        return str(location_id) == '71781154968'
     
     def _is_online_order(self, order: Dict) -> bool:
         """Check if order is from online store"""
-        source = order.get('source_name', '').lower()
-        
-        # Common indicators for online orders
-        return source in ['web', 'online_store', 'shopify'] and not self._is_charleston_pos(order) and not self._is_boston_pos(order)
+        # Any order that's not from Charleston or Boston POS is considered online
+        # This includes web orders and orders from other locations (Atlanta store)
+        return not self._is_charleston_pos(order) and not self._is_boston_pos(order)
