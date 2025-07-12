@@ -75,15 +75,9 @@ class ShopifyService:
                     
                     orders.append(order_data)
                 
-                # Check for pagination info
-                if hasattr(batch, 'has_next_page') and batch.has_next_page():
-                    # Get the next page cursor
-                    params['page_info'] = batch.next_page_info
-                    # Remove date filters for subsequent requests when using page_info
-                    params.pop('created_at_min', None)
-                    params.pop('created_at_max', None)
-                    params.pop('status', None)
-                else:
+                # For ShopifyAPI library, just check if we got less than the limit
+                # This means we've reached the last page
+                if len(batch) < 250:
                     break
             
             print(f"Total orders fetched: {len(orders)}")
@@ -125,10 +119,8 @@ class ShopifyService:
                     
                     products.append(product_data)
                 
-                # Check for pagination info
-                if hasattr(batch, 'has_next_page') and batch.has_next_page():
-                    params['page_info'] = batch.next_page_info
-                else:
+                # For ShopifyAPI library, just check if we got less than the limit
+                if len(batch) < 250:
                     break
             
             return products
