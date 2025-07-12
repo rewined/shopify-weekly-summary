@@ -4,6 +4,7 @@ import pandas as pd
 from collections import defaultdict
 import os
 import json
+import re
 
 
 class ShopifyAnalytics:
@@ -22,7 +23,7 @@ class ShopifyAnalytics:
                 pass
         return {}
     
-    def analyze_weekly_data(self, week_start: datetime = None) -> Dict[str, Any]:
+    def analyze_weekly_data(self, week_start: datetime = None, include_trends: bool = True) -> Dict[str, Any]:
         """Analyze data for a specific week, defaulting to last week"""
         if not week_start:
             # Default to last Monday
@@ -85,6 +86,13 @@ class ShopifyAnalytics:
         # Identify trends and patterns
         trends = self._identify_trends(current_orders, prev_year_orders)
         
+        # Get multi-week trends if requested
+        multi_week_trends = {}
+        product_categories = {}
+        if include_trends:
+            multi_week_trends = self._analyze_multi_week_trends(week_start)
+            product_categories = self._analyze_product_categories(current_orders)
+        
         # Add goals data (these would ideally come from the Google Sheets)
         goals_data = self._get_store_goals(week_start)
         
@@ -108,7 +116,9 @@ class ShopifyAnalytics:
             'total_orders': current_metrics['all']['order_count'],
             'avg_order_value': current_metrics['all']['avg_order_value'],
             'goals': goals_data,
-            'conversion_metrics': conversion_metrics
+            'conversion_metrics': conversion_metrics,
+            'multi_week_trends': multi_week_trends,
+            'product_categories': product_categories
         }
     
     def _calculate_metrics(self, orders: List[Dict]) -> Dict[str, Any]:
@@ -417,3 +427,112 @@ class ShopifyAnalytics:
             }
         
         return conversion_data
+    
+    def _analyze_multi_week_trends(self, current_week_start: datetime) -> Dict[str, Any]:
+        """Analyze trends over the past 4 weeks"""
+        trends = {
+            'revenue_trend': [],
+            'order_trend': [],
+            'avg_ticket_trend': [],
+            'top_products_trend': {}
+        }
+        
+        # Get data for past 4 weeks
+        for i in range(4):
+            week_start = current_week_start - timedelta(weeks=i)
+            week_end = week_start + timedelta(days=6, hours=23, minutes=59, seconds=59)
+            
+            orders = self.shopify.get_orders_for_period(week_start, week_end)
+            
+            # Calculate metrics for this week
+            metrics = self._calculate_metrics(orders)
+            
+            trends['revenue_trend'].insert(0, {
+                'week': week_start.strftime('%Y-%m-%d'),
+                'revenue': metrics['total_revenue']
+            })
+            
+            trends['order_trend'].insert(0, {
+                'week': week_start.strftime('%Y-%m-%d'),
+                'orders': metrics['order_count']
+            })
+            
+            trends['avg_ticket_trend'].insert(0, {
+                'week': week_start.strftime('%Y-%m-%d'),
+                'avg_ticket': metrics['avg_order_value']
+            })
+            
+            # Track top products
+            products = self._analyze_product_performance(orders)[:5]
+            for product in products:
+                name = product['product']
+                if name not in trends['top_products_trend']:
+                    trends['top_products_trend'][name] = []
+                trends['top_products_trend'][name].append({
+                    'week': week_start.strftime('%Y-%m-%d'),
+                    'revenue': product['revenue'],
+                    'quantity': product['quantity_sold']
+                })
+        
+        # Calculate week-over-week changes
+        if len(trends['revenue_trend']) >= 2:
+            current_revenue = trends['revenue_trend'][-1]['revenue']
+            last_week_revenue = trends['revenue_trend'][-2]['revenue']
+            trends['wow_revenue_change'] = ((current_revenue - last_week_revenue) / last_week_revenue * 100) if last_week_revenue > 0 else 0
+        
+        return trends
+    
+    def _analyze_product_categories(self, orders: List[Dict]) -> Dict[str, Any]:
+        """Analyze products by category"""
+        categories = {
+            'candle_library': {'items': [], 'revenue': 0, 'count': 0},
+            'match_bar': {'items': [], 'revenue': 0, 'count': 0},
+            'workshops': {'items': [], 'revenue': 0, 'count': 0},
+            'gift_products': {'items': [], 'revenue': 0, 'count': 0}
+        }
+        
+        for order in orders:
+            for item in order['line_items']:
+                title = item['title']
+                sku = item.get('sku', '')
+                revenue = item['price'] * item['quantity']
+                
+                # Categorize based on SKU patterns and product names
+                if re.match(r'cf\d+', sku.lower()) or 'candlefish no' in title.lower():
+                    # Candle library items (cf1020203 format)
+                    categories['candle_library']['items'].append(title)
+                    categories['candle_library']['revenue'] += revenue
+                    categories['candle_library']['count'] += item['quantity']
+                
+                elif 'match' in title.lower() or 'match bar' in title.lower():
+                    # Match bar items
+                    categories['match_bar']['items'].append(title)
+                    categories['match_bar']['revenue'] += revenue
+                    categories['match_bar']['count'] += item['quantity']
+                
+                elif 'workshop' in title.lower() or 'class' in title.lower():
+                    # Workshop items
+                    categories['workshops']['items'].append(title)
+                    categories['workshops']['revenue'] += revenue
+                    categories['workshops']['count'] += item['quantity']
+                
+                else:
+                    # Gift products from third party providers
+                    categories['gift_products']['items'].append(title)
+                    categories['gift_products']['revenue'] += revenue
+                    categories['gift_products']['count'] += item['quantity']
+        
+        # Get unique items and sort by frequency
+        for category in categories:
+            items = categories[category]['items']
+            unique_items = list(set(items))
+            categories[category]['unique_items'] = unique_items
+            categories[category]['top_items'] = [
+                (item, items.count(item)) 
+                for item in unique_items
+            ]
+            categories[category]['top_items'].sort(key=lambda x: x[1], reverse=True)
+            categories[category]['top_items'] = categories[category]['top_items'][:5]
+            del categories[category]['items']  # Remove raw list to save space
+        
+        return categories

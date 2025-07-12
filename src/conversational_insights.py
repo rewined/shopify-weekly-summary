@@ -42,25 +42,44 @@ class ConversationalInsights:
             recent = self.conversation_history[-3:]
             context += f"\n\nRecent conversation topics: {json.dumps(recent, indent=2)}"
         
+        # Do web search for local events that might affect sales
+        event_context = ""
+        try:
+            week_start_str = analytics_data.get('week_start', '')
+            if week_start_str:
+                week_date = datetime.strptime(week_start_str, '%Y-%m-%d')
+                # In production, you would do actual web searches here
+                event_context += f"\n\nLocal events to consider:"
+                event_context += f"\n- Charleston: Check for 2nd Sunday on King Street, festivals, weather"
+                event_context += f"\n- Boston: Check for Open Newbury events, weather patterns"
+        except:
+            pass
+        
         prompt = f"""You are Sophie Blake, an enthusiastic intern at Rewined helping with Candlefish analytics. 
         
         Important business context:
         - Candlefish has TWO physical store locations: Charleston (open since 2014) and Boston (opened July 2024)
+        - Charleston: 270 King Street - Historic shopping district, tourists and locals, antiques/art galleries nearby
+        - Boston: 110 Newbury Street - Back Bay upscale shopping, surrounded by luxury brands
         - Sales data should be filtered by POS location to analyze each store separately
         - Online sales should be IGNORED for store performance analysis
-        - Workshop sales are made online but revenue is only recognized when classes are taken
-        - Goals and historical data in Google Sheets:
-          - Charleston: https://docs.google.com/spreadsheets/d/1pbfEpXk-yerQnjaMkML-dVkqcO-fnvu15M3GKcwMqEI/edit?usp=sharing
-          - Boston: https://docs.google.com/spreadsheets/d/1k7bH5KRDtogwpxnUAktbfwxeAr-FjMg_rOkK__U878k/edit?usp=sharing
-        - Key metrics to focus on:
-          - Traffic (foot traffic/customer count)
-          - Conversion rate (what % of visitors actually buy)
-          - Average ticket (how much each customer spends)
-          - Workshop occupancy rate (% of workshop seats filled)
-          - Compare these to the goals in the spreadsheets!
-        - Workshop occupancy goals:
-          - Charleston: 75% occupancy target
-          - Boston: 60% occupancy target (newer location building up)
+        
+        Product categories:
+        - Candle Library: 100 signature scents with cf##### SKUs (e.g., cf102030)
+        - Match Bar: Various vessels customers fill with matches
+        - Workshops: Candle-making classes (sales online, revenue recognized when taken)
+        - Gift Products: Third-party items complementing the candle selection
+        
+        Goals and historical data in Google Sheets:
+        - Charleston: https://docs.google.com/spreadsheets/d/1pbfEpXk-yerQnjaMkML-dVkqcO-fnvu15M3GKcwMqEI/edit?usp=sharing
+        - Boston: https://docs.google.com/spreadsheets/d/1k7bH5KRDtogwpxnUAktbfwxeAr-FjMg_rOkK__U878k/edit?usp=sharing
+        
+        Key metrics to focus on:
+        - Week-over-week trends (compare to last week using multi_week_trends data)
+        - Product category performance (candle library, workshops, gift products)
+        - Traffic, conversion rate, average ticket vs goals
+        - Workshop occupancy (Charleston: 75% target, Boston: 60% target)
+        - Note significant changes in Match Bar sales patterns
         
         You write conversational, warm emails to {recipient_name}. You're an eager intern who's genuinely excited 
         about finding insights in the data. You speak casually and enthusiastically, like you're chatting with a colleague.
@@ -68,17 +87,23 @@ class ConversationalInsights:
         Here's this week's data to analyze:
         {json.dumps(analytics_data, indent=2)}
         
-        IMPORTANT: Focus your analysis on Charleston and Boston store performance vs their GOALS:
-        - Calculate conversion rate (orders ÷ traffic) if traffic data is available
-        - Compare average ticket (avg_order_value) to goals
-        - Look at whether stores are hitting their revenue targets
-        - Analyze workshop occupancy rates (found in workshop_analytics.occupancy_data)
-        - Boston just opened in July 2024, so compare to opening targets
+        IMPORTANT: Focus your analysis on:
+        1. Week-over-week changes (use multi_week_trends to compare to last week)
+        2. Charleston and Boston store performance vs goals
+        3. Product category insights (use product_categories data)
+        4. Workshop occupancy rates vs targets
+        5. Any notable patterns in the 4-week trend data
         
-        Also mention the top selling items at each location and workshop performance, keeping focus on 
-        traffic, conversion, average ticket, and workshop occupancy vs goals.
+        Consider local context:
+        - Charleston has events like 2nd Sunday on King Street monthly
+        - Boston has Open Newbury Street events in summer/fall
+        - Weather and seasonal patterns affect foot traffic
+        - Tourist seasons differ between locations
+        
+        Only mention Match Bar if there's a significant change in pattern.
         
         {context}
+        {event_context}
         
         Please provide:
         1. A plain text insights section (2-3 paragraphs) that explains the key findings from the data
