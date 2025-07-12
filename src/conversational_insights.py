@@ -96,6 +96,8 @@ class ConversationalInsights:
         Remember: You're writing ONE complete email. Make it feel real and different each time.
         
         Format as JSON with keys: "full_email" and "questions" (extract the questions separately for tracking)
+        
+        IMPORTANT: Return ONLY the JSON object, no markdown code blocks, no ```json tags, just the raw JSON.
         """
         
         try:
@@ -111,16 +113,25 @@ class ConversationalInsights:
             # Parse the response
             content = response.content[0].text
             
+            # Remove markdown code blocks if present
+            if '```json' in content:
+                content = content.split('```json')[1].split('```')[0].strip()
+            elif '```' in content:
+                content = content.split('```')[1].split('```')[0].strip()
+            
             # Try to parse as JSON
             try:
                 result = json.loads(content)
+                print(f"Successfully parsed JSON with keys: {result.keys()}")
                 # Handle new format with full_email
                 if 'full_email' in result:
                     result['insights_text'] = result['full_email']
                 # Ensure we have the right keys
                 if 'insights_html' in result and 'insights_text' not in result:
                     result['insights_text'] = result['insights_html']
-            except json.JSONDecodeError:
+            except json.JSONDecodeError as e:
+                print(f"JSON decode error: {e}")
+                print(f"Content was: {content[:200]}...")
                 # Fallback if not valid JSON
                 result = {
                     "insights_text": content,
