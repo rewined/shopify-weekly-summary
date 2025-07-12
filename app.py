@@ -153,6 +153,36 @@ def health():
     """Health check endpoint"""
     return jsonify({'status': 'healthy', 'timestamp': datetime.now().isoformat()})
 
+@app.route('/test-shopify')
+def test_shopify():
+    """Test Shopify connection"""
+    if not shopify_service:
+        init_services()
+    
+    try:
+        # Try to fetch recent orders
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=30)
+        
+        print(f"Testing Shopify connection for date range: {start_date} to {end_date}")
+        orders = shopify_service.get_orders_for_period(start_date, end_date)
+        
+        return jsonify({
+            'success': True,
+            'orders_found': len(orders),
+            'date_range': {
+                'start': start_date.isoformat(),
+                'end': end_date.isoformat()
+            },
+            'shop_domain': shopify_service.shop_domain
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'shop_domain': shopify_service.shop_domain if shopify_service else 'Not initialized'
+        }), 500
+
 if __name__ == '__main__':
     # Initialize services
     init_services()

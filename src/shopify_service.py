@@ -32,6 +32,8 @@ class ShopifyService:
             start_str = start_date.strftime('%Y-%m-%dT00:00:00-00:00')
             end_str = end_date.strftime('%Y-%m-%dT23:59:59-00:00')
             
+            print(f"Fetching orders from {start_str} to {end_str}")
+            
             # Fetch orders with pagination
             page = 1
             while True:
@@ -79,6 +81,7 @@ class ShopifyService:
                 if len(batch) < 250:
                     break
             
+            print(f"Total orders fetched: {len(orders)}")
             return orders
             
         except Exception as e:
