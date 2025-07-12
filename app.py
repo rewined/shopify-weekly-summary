@@ -162,10 +162,18 @@ def test_shopify():
     try:
         # Try to fetch recent orders
         end_date = datetime.now()
-        start_date = end_date - timedelta(days=30)
+        start_date = end_date - timedelta(days=365)  # Look back 1 year instead of 30 days
         
         print(f"Testing Shopify connection for date range: {start_date} to {end_date}")
         orders = shopify_service.get_orders_for_period(start_date, end_date)
+        
+        # Also try to get a count of all orders
+        try:
+            import shopify
+            order_count = shopify.Order.count()
+            print(f"Total orders in store: {order_count}")
+        except Exception as count_error:
+            order_count = f"Error: {str(count_error)}"
         
         return jsonify({
             'success': True,
@@ -174,7 +182,9 @@ def test_shopify():
                 'start': start_date.isoformat(),
                 'end': end_date.isoformat()
             },
-            'shop_domain': shopify_service.shop_domain
+            'shop_domain': shopify_service.shop_domain,
+            'total_orders_in_store': order_count,
+            'api_permissions': 'Check Railway logs for details'
         })
     except Exception as e:
         return jsonify({
