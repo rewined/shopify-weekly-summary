@@ -130,7 +130,17 @@ class ConversationalEmailService:
         return template
     
     def create_weekly_email_text(self, recipient_name, analytics_data, insights, questions):
-        # Format performance vs goals text
+        # Check if Sophie provided a complete email
+        insights_text = insights if isinstance(insights, str) else insights.get('insights_text', '')
+        
+        # If the insights already contain a complete email (starts with a greeting), use it as-is
+        if insights_text and any(insights_text.lower().startswith(greeting) for greeting in ['hi ', 'hey ', 'hello ', 'good morning', 'good afternoon', 'morning']):
+            # Just add the P.S. about the attachment if it's not already there
+            if 'attached' not in insights_text.lower():
+                insights_text += "\n\nP.S. I attached the full report with all the details."
+            return insights_text
+        
+        # Otherwise, use the fallback template (this should rarely happen with the new prompt)
         goals_text = ""
         if 'goals' in analytics_data and 'conversion_metrics' in analytics_data:
             charleston_metrics = analytics_data['conversion_metrics'].get('charleston', {})
@@ -153,48 +163,15 @@ class ConversationalEmailService:
                 revenue_pct = boston_metrics.get('revenue_vs_goal_pct', 0)
                 avg_ticket = boston_current.get('avg_order_value', 0)
                 goals_text += f"Boston hit {revenue_pct:.0f}% of target with ${avg_ticket:.0f} average tickets\n"
-            
-            # Add workshop occupancy if available
-            workshop_data = analytics_data.get('workshop_analytics', {})
-            occupancy_data = workshop_data.get('occupancy_data', {})
-            if occupancy_data.get('occupancy_rate', 0) > 0:
-                occupancy_rate = occupancy_data.get('occupancy_rate', 0)
-                goals_text += f"\nWorkshop occupancy was {occupancy_rate}% this week"
-                if occupancy_rate >= 75:
-                    goals_text += " (great!)"
-                elif occupancy_rate >= 60:
-                    goals_text += " (solid)"
-                else:
-                    goals_text += " (room to grow)"
-                goals_text += "\n"
         
-        # Format top products text
-        products_text = ""
-        if 'product_performance_by_location' in analytics_data:
-            charleston_products = analytics_data['product_performance_by_location']['charleston'][:2]
-            boston_products = analytics_data['product_performance_by_location']['boston'][:2]
-            
-            if charleston_products or boston_products:
-                products_text = "\n\nTop sellers this week:\n\n"
-                if charleston_products:
-                    products_text += f"Charleston: {charleston_products[0]['product']} (${charleston_products[0]['revenue']:,.0f})"
-                    if len(charleston_products) > 1:
-                        products_text += f" and {charleston_products[1]['product']}"
-                    products_text += "\n"
-                
-                if boston_products:
-                    products_text += f"Boston: {boston_products[0]['product']} (${boston_products[0]['revenue']:,.0f})"
-                    if len(boston_products) > 1:
-                        products_text += f" and {boston_products[1]['product']}"
-                    products_text += "\n"
-        
+        # Fallback template
         text = f"""Hi {recipient_name},
 
 Hope your week is off to a good start. I just finished going through last week's numbers and wanted to share what I found.
 
-You brought in ${analytics_data['total_revenue']:,.2f} from {analytics_data['total_orders']} orders, with customers spending about ${analytics_data['avg_order_value']:.2f} on average.{goals_text}{products_text}
+You brought in ${analytics_data['total_revenue']:,.2f} from {analytics_data['total_orders']} orders, with customers spending about ${analytics_data['avg_order_value']:.2f} on average.{goals_text}
 
-{insights if isinstance(insights, str) else insights.get('insights_text', insights)}
+{insights_text}
 
 {chr(10).join([f'- {q}' for q in questions])}
 
