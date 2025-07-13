@@ -1,5 +1,12 @@
 [build]
 builder = "NIXPACKS"
+nixpacksPlan = """
+[phases.setup]
+nixPkgs = ["python311"]
+
+[phases.install]  
+cmds = ["pip install -r requirements-prod.txt"]
+"""
 
 [deploy]
 startCommand = "gunicorn app:app --timeout 300 --workers 2 --threads 2"
