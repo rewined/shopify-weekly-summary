@@ -33,19 +33,25 @@ class ShopifyScheduler:
         self.app = app
         self.email_service = ConversationalEmailService(app)
         
-        # Start the scheduler
-        self.scheduler.start()
+        # Don't start scheduler here - let app.py control it
+        # self.scheduler.start()
         
         # Schedule weekly report
         self._schedule_weekly_report()
         
-        # Schedule reply processing every hour
+        # Schedule reply processing every 5 minutes
         self._schedule_reply_processing()
         
         # Schedule daily Google Sheets refresh
         self._schedule_daily_sheets_refresh()
         
         logger.info("Shopify scheduler initialized")
+    
+    def start(self):
+        """Start the scheduler"""
+        if not self.scheduler.running:
+            self.scheduler.start()
+            logger.info("Scheduler started")
     
     def _schedule_weekly_report(self):
         """Schedule the weekly report generation and sending"""

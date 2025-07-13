@@ -37,13 +37,35 @@ scheduler = None
 def init_services():
     global shopify_service, analytics, insights, report_generator, email_service, feedback_db, reply_processor, scheduler
     
-    shopify_service = ShopifyService()
-    analytics = ShopifyAnalytics(shopify_service)
-    insights = ConversationalInsights()
-    report_generator = ShopifyReportGenerator()
+    try:
+        shopify_service = ShopifyService()
+        analytics = ShopifyAnalytics(shopify_service)
+    except Exception as e:
+        print(f"Warning: Could not initialize Shopify services: {e}")
+        shopify_service = None
+        analytics = None
+    
+    try:
+        insights = ConversationalInsights()
+    except Exception as e:
+        print(f"Warning: Could not initialize insights: {e}")
+        insights = None
+        
+    try:
+        report_generator = ShopifyReportGenerator()
+    except Exception as e:
+        print(f"Warning: Could not initialize report generator: {e}")
+        report_generator = None
+        
     email_service = ConversationalEmailService(app)
     feedback_db = FeedbackDatabase()
-    reply_processor = ReplyProcessor()
+    
+    try:
+        reply_processor = ReplyProcessor()
+    except Exception as e:
+        print(f"Warning: Could not initialize reply processor: {e}")
+        reply_processor = None
+        
     scheduler = ShopifyScheduler(app)
 
 @app.route('/')
@@ -520,20 +542,28 @@ def test_email_response():
             'traceback': traceback.format_exc()
         }), 500
 
-if __name__ == '__main__':
-    # Run automatic setup
-    try:
-        from src.auto_setup import setup_automatic_operations
-        setup_automatic_operations()
-    except Exception as e:
-        print(f"Warning: Could not run automatic setup: {e}")
-    
-    # Initialize services
+# Initialize on module load for gunicorn
+try:
+    from src.auto_setup import setup_automatic_operations
+    setup_automatic_operations()
+except Exception as e:
+    print(f"Warning: Could not run automatic setup: {e}")
+
+try:
     init_services()
-    
-    # Start the scheduler
-    scheduler.start()
-    
-    # Run the Flask app
+except Exception as e:
+    print(f"Error initializing services: {e}")
+    # Continue anyway - the app can still serve the health endpoint
+
+# Start the scheduler if available
+if scheduler:
+    try:
+        scheduler.start()
+    except Exception as e:
+        print(f"Warning: Could not start scheduler: {e}")
+
+if __name__ == '__main__':
+    # Only run the development server if executed directly
+    # Railway uses gunicorn, not app.run()
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
