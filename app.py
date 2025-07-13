@@ -476,6 +476,15 @@ def test_google_sheets():
             'traceback': traceback.format_exc()
         }), 500
 
+@app.route('/health')
+def health_check():
+    """Health check endpoint for Railway"""
+    return jsonify({
+        'status': 'healthy',
+        'timestamp': datetime.now().isoformat(),
+        'service': 'Sophie Analytics System'
+    })
+
 @app.route('/api/test-email-response', methods=['POST'])
 def test_email_response():
     """Test Sophie's email response generation"""
